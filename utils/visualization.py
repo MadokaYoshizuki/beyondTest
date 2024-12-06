@@ -71,24 +71,16 @@ class Visualizer:
             format_func=lambda x: attribute_display_names[x]
         )
         
-        # 質問グループの選択
-        group_options = ["すべての質問"] + list(question_groups.keys())
-        selected_group = st.selectbox(
-            "質問グループを選択:",
-            group_options,
-            key="numerical_group"
-        )
-
         df = dfs[selected_year_idx]
         
-        # 選択された質問グループに基づいて列を制限
-        if selected_group != "すべての質問":
-            target_columns = question_groups[selected_group]
-            filtered_columns = [col for col in df.columns if col in target_columns]
-            df = df[filtered_columns + [selected_attribute] if selected_attribute != "全体" else filtered_columns]
+        # 質問グループ一覧の表示
+        st.write("登録済み質問グループ:")
+        for group_name, questions in question_groups.items():
+            with st.expander(f"📁 {group_name}"):
+                st.write(", ".join([column_names.get(q, q) for q in questions]))
         
         for question_type in ["数値回答", "数値回答（複数回答）"]:
-            st.subheader(f"{selected_group} - {question_type}")
+            st.subheader(f"{question_type}の分析結果")
             
             if question_type == "数値回答":
                 self._display_numeric_analysis(df, selected_attribute, config_manager)
@@ -119,10 +111,34 @@ class Visualizer:
                     else:
                         results.loc[display_name, "100点換算"] = '-'
                         
+            # グループごとの集計結果を計算
+            group_results = pd.DataFrame()
+            for group_name, questions in question_groups.items():
+                numeric_questions = [q for q in questions if q in df.columns and pd.api.types.is_numeric_dtype(df[q])]
+                if numeric_questions:
+                    group_mean = df[numeric_questions].mean().mean()
+                    max_val = df[numeric_questions].max().max()
+                    group_results.loc[group_name, "グループ平均"] = '{:g}'.format(group_mean) if pd.notnull(group_mean) else '-'
+                    if pd.notnull(group_mean) and pd.notnull(max_val) and max_val != 0:
+                        score = (group_mean / max_val) * 100
+                        group_results.loc[group_name, "グループ100点換算"] = '{:g}'.format(score)
+                    else:
+                        group_results.loc[group_name, "グループ100点換算"] = '-'
+
             if not results.empty:
-                st.write("平均値と100点換算")
+                # 質問ごとの結果とグループごとの結果を並べて表示
+                st.write("質問ごとの分析結果")
                 st.dataframe(results)
-                self._save_to_excel(results, "numeric_analysis_all")
+                
+                st.write("グループごとの分析結果")
+                st.dataframe(group_results)
+                
+                # Excelエクスポートに両方のデータを含める
+                excel_data = {
+                    "質問ごとの分析": results,
+                    "グループごとの分析": group_results
+                }
+                self._save_to_excel(excel_data, "numeric_analysis_all")
             else:
                 st.info("数値データが見つかりませんでした。")
         else:
