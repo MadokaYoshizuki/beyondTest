@@ -4,6 +4,24 @@ import plotly.graph_objects as go
 import pandas as pd
 
 class Visualizer:
+    def _save_to_excel(self, df, filename):
+        # 一時ファイルとしてExcelを保存
+        excel_path = f"{filename}.xlsx"
+        df.to_excel(excel_path, index=True, engine='openpyxl')
+        
+        # ダウンロードボタンを表示
+        with open(excel_path, 'rb') as f:
+            st.download_button(
+                label="Excelファイルをダウンロード",
+                data=f,
+                file_name=excel_path,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        
+        # 一時ファイルを削除
+        import os
+        os.remove(excel_path)
+
     def display_numerical_tables(self, dfs, config_manager):
         if not dfs:
             st.info("データを読み込んでください。")
@@ -110,8 +128,11 @@ class Visualizer:
             # 結果の表示
             st.write("平均値")
             st.dataframe(results_mean)
+            self._save_to_excel(results_mean, f"average_values_{attribute}")
+            
             st.write("100点換算")
             st.dataframe(results_score)
+            self._save_to_excel(results_score, f"score_values_{attribute}")
             return
 
         st.write("平均値と100点換算")
@@ -140,6 +161,7 @@ class Visualizer:
             if not results.empty:
                 st.write("回答件数")
                 st.dataframe(results)
+                self._save_to_excel(results, "multiple_choice_analysis_all")
             else:
                 st.info("複数回答の質問が見つかりませんでした。")
         else:
