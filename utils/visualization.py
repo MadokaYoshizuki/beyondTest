@@ -10,10 +10,26 @@ class Visualizer:
             return
             
         year_options = [f"{i+1}回目のデータ" for i in range(len(dfs))]
-        selected_year_idx = st.selectbox("データを選択:", range(len(dfs)), format_func=lambda x: year_options[x])
+        selected_year_idx = st.selectbox(
+            "データを選択:",
+            range(len(dfs)),
+            format_func=lambda x: year_options[x]
+        )
+        
+        # 属性の表示名を取得
+        column_names = config_manager.config.get('column_names', {})
+        attributes = ["全体"] + [
+            attr for attr in config_manager.config['attributes']
+        ]
+        attribute_display_names = {
+            attr: column_names.get(attr, attr) if attr != "全体" else attr
+            for attr in attributes
+        }
+        
         selected_attribute = st.selectbox(
             "属性項目を選択:",
-            ["全体"] + config_manager.config['attributes']
+            attributes,
+            format_func=lambda x: attribute_display_names[x]
         )
 
         df = dfs[selected_year_idx]
@@ -192,8 +208,17 @@ class Visualizer:
         # Scatter plot
         if len(numeric_columns) >= 2:
             st.subheader("相関散布図")
-            x_axis = st.selectbox("X軸:", numeric_columns)
-            y_axis = st.selectbox("Y軸:", numeric_columns)
+            numeric_display_names = {col: column_names.get(col, col) for col in numeric_columns}
+            x_axis = st.selectbox(
+                "X軸:",
+                numeric_columns,
+                format_func=lambda x: numeric_display_names[x]
+            )
+            y_axis = st.selectbox(
+                "Y軸:",
+                numeric_columns,
+                format_func=lambda x: numeric_display_names[x]
+            )
             
             fig = px.scatter(df, x=x_axis, y=y_axis)
             st.plotly_chart(fig)

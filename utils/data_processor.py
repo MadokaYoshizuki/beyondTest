@@ -11,7 +11,7 @@ class DataProcessor:
         self.dates = dates
         
         for file in files:
-            df = pd.read_csv(file)
+            df = pd.read_csv(file, encoding='utf-8-sig')
             self.dfs.append(df)
 
     def get_statistics(self, df):
