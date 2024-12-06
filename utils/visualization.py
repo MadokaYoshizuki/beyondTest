@@ -156,11 +156,22 @@ class Visualizer:
                     continue
             
             if results_data:
-                # DataFrameの作成と表示
+                # DataFrameの作成
                 results_df = pd.DataFrame(results_data)
-                results_df = results_df.sort_values(['質問番号', '属性値', '回答'])
+                
+                # ピボットテーブルの作成
+                pivot_df = results_df.pivot_table(
+                    index=['属性値', '回答'],
+                    columns='質問番号',
+                    values='件数',
+                    fill_value=0
+                )
+                
+                # 列の順序を元のデータの順序に合わせる
+                pivot_df = pivot_df.reindex(sorted(pivot_df.columns, key=lambda x: int(x[1:])))
+                
                 st.write("回答件数（属性別）")
-                st.dataframe(results_df)
+                st.dataframe(pivot_df)
             else:
                 st.info("複数回答の質問が見つかりませんでした。")
 
