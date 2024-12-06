@@ -126,65 +126,41 @@ class Visualizer:
             else:
                 st.info("複数回答の質問が見つかりませんでした。")
         else:
-            # マルチインデックスを使用した結果格納用のリスト
-            multi_index_data = []
-            
+            # 結果格納用のリストを作成
+            results_data = []
+
             for col in df.columns:
                 try:
-                    # 数値データと文字列データを適切に処理
-                    if pd.api.types.is_numeric_dtype(df[col]):
-                        continue  # 数値データはスキップ
-                    
-                    # 文字列として処理
-                    values = df[col].fillna('').astype(str)
-                    # カンマを含む値のみを処理（複数回答）
-                    if not values.str.contains(',').any():
+                    if pd.api.types.is_numeric_dtype(df[col]) or not df[col].fillna('').astype(str).str.contains(',').any():
                         continue
+                        
+                    # 元のデータフレームの列順を保持するため、列名とインデックスを保存
+                    col_idx = df.columns.get_loc(col)
                     
-                    # 属性値ごとに集計
                     for value in df[attribute].unique():
                         subset = df[df[attribute] == value]
                         subset_values = subset[col].fillna('').astype(str).str.split(',').explode()
-                        counts = subset_values.value_counts().sort_index()  # 昇順でソート
+                        counts = subset_values.value_counts().sort_index()
                         
-                        # 各回答オプションについて結果を格納
                         for answer, count in counts.items():
-                            multi_index_data.append({
+                            results_data.append({
+                                '質問番号': f'Q{col_idx + 1}',
                                 '質問': col,
                                 '属性値': value,
                                 '回答': answer,
                                 '件数': count
                             })
+
                 except Exception as e:
                     st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
                     continue
             
-            if multi_index_data:
-                # DataFrameの作成とピボット
-                results_df = pd.DataFrame(multi_index_data)
-                
-                # 質問の一覧を取得（ユニーク）
-                questions = sorted(results_df['質問'].unique())
-                
-                # 各質問についてピボットテーブルを作成して表示
-                for question in questions:
-                    st.write(f"\n### 質問: {question}")
-                    
-                    # 現在の質問のデータのみを抽出
-                    question_data = results_df[results_df['質問'] == question]
-                    
-                    # ピボットテーブルの作成
-                    pivot_results = question_data.pivot_table(
-                        index='属性値',
-                        columns='回答',
-                        values='件数',
-                        fill_value=0
-                    )
-                    
-                    # 列を昇順にソート
-                    pivot_results = pivot_results.reindex(sorted(pivot_results.columns), axis=1)
-                    
-                    st.dataframe(pivot_results)
+            if results_data:
+                # DataFrameの作成と表示
+                results_df = pd.DataFrame(results_data)
+                results_df = results_df.sort_values(['質問番号', '属性値', '回答'])
+                st.write("回答件数（属性別）")
+                st.dataframe(results_df)
             else:
                 st.info("複数回答の質問が見つかりませんでした。")
 
