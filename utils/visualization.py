@@ -27,7 +27,6 @@ class Visualizer:
                 self._display_multiple_choice_analysis(df, selected_attribute, config_manager)
 
     def _display_numeric_analysis(self, df, attribute, config_manager):
-        # Average and 100-point conversion
         results = pd.DataFrame()
         
         if attribute == "全体":
@@ -42,8 +41,10 @@ class Visualizer:
                 subset = df[df[attribute] == value]
                 for col in df.columns:
                     if pd.api.types.is_numeric_dtype(df[col]):
-                        results.loc[f"{col} ({value})", "平均"] = subset[col].mean()
-                        results.loc[f"{col} ({value})", "100点換算"] = (subset[col].mean() / subset[col].max()) * 100
+                        mean_val = subset[col].mean()
+                        max_val = subset[col].max()
+                        results.loc[f"{col} ({value})", "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
+                        results.loc[f"{col} ({value})", "100点換算"] = '{:g}'.format((mean_val / max_val) * 100) if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0 else '-'
 
         st.write("平均値と100点換算")
         st.dataframe(results)
@@ -52,19 +53,37 @@ class Visualizer:
         results = pd.DataFrame()
         
         for col in df.columns:
-            values = df[col].str.split(',').explode()
-            if attribute == "全体":
-                counts = values.value_counts()
-                results[col] = counts
-            else:
-                for value in df[attribute].unique():
-                    subset = df[df[attribute] == value]
-                    subset_values = subset[col].str.split(',').explode()
-                    counts = subset_values.value_counts()
-                    results[f"{col} ({value})"] = counts
+            try:
+                # 数値データと文字列データを適切に処理
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    continue  # 数値データはスキップ
+                
+                # 文字列として処理
+                values = df[col].fillna('').astype(str)
+                # カンマを含む値のみを処理（複数回答）
+                if not values.str.contains(',').any():
+                    continue
+                    
+                values = values.str.split(',').explode()
+                
+                if attribute == "全体":
+                    counts = values.value_counts()
+                    results[col] = counts
+                else:
+                    for value in df[attribute].unique():
+                        subset = df[df[attribute] == value]
+                        subset_values = subset[col].fillna('').astype(str).str.split(',').explode()
+                        counts = subset_values.value_counts()
+                        results[f"{col} ({value})"] = counts
+            except Exception as e:
+                st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
+                continue
 
-        st.write("回答件数")
-        st.dataframe(results)
+        if not results.empty:
+            st.write("回答件数")
+            st.dataframe(results)
+        else:
+            st.info("複数回答の質問が見つかりませんでした。")
 
     def display_dashboard(self, dfs, config_manager):
         if not dfs:
@@ -91,32 +110,43 @@ class Visualizer:
         metric = st.radio("指標:", ["平均値", "100点換算"])
         
         numeric_columns = df.select_dtypes(include=['number']).columns
-        data = df[numeric_columns].corr()
-        
-        fig = go.Figure(data=go.Heatmap(
-            z=data,
-            x=data.columns,
-            y=data.columns,
-            colorscale='RdBu'
-        ))
-        st.plotly_chart(fig)
+        if not numeric_columns.empty:
+            data = df[numeric_columns].corr()
+            
+            fig = go.Figure(data=go.Heatmap(
+                z=data,
+                x=data.columns,
+                y=data.columns,
+                colorscale='RdBu'
+            ))
+            st.plotly_chart(fig)
+        else:
+            st.info("数値データが見つかりませんでした。")
 
         # Scatter plot
-        st.subheader("相関散布図")
-        x_axis = st.selectbox("X軸:", numeric_columns)
-        y_axis = st.selectbox("Y軸:", numeric_columns)
-        
-        fig = px.scatter(df, x=x_axis, y=y_axis)
-        st.plotly_chart(fig)
+        if len(numeric_columns) >= 2:
+            st.subheader("相関散布図")
+            x_axis = st.selectbox("X軸:", numeric_columns)
+            y_axis = st.selectbox("Y軸:", numeric_columns)
+            
+            fig = px.scatter(df, x=x_axis, y=y_axis)
+            st.plotly_chart(fig)
 
         # Bar chart for multiple choice questions
         st.subheader("複数回答の分布")
-        multiple_choice_cols = [col for col in df.columns if ',' in str(df[col].iloc[0])]
+        multiple_choice_cols = []
+        for col in df.columns:
+            if not pd.api.types.is_numeric_dtype(df[col]):
+                values = df[col].fillna('').astype(str)
+                if values.str.contains(',').any():
+                    multiple_choice_cols.append(col)
         
         if multiple_choice_cols:
             selected_col = st.selectbox("質問を選択:", multiple_choice_cols)
-            values = df[selected_col].str.split(',').explode()
+            values = df[selected_col].fillna('').astype(str).str.split(',').explode()
             counts = values.value_counts()
             
             fig = px.bar(x=counts.index, y=counts.values)
             st.plotly_chart(fig)
+        else:
+            st.info("複数回答の質問が見つかりませんでした。")

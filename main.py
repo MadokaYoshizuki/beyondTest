@@ -107,20 +107,35 @@ def main():
         # Configuration section
         st.header("3. 設定")
         
-        # Column mapping
+        # Column mapping with grid layout
         with st.expander("列名の設定"):
             config = st.session_state.config_manager.load_config()
             new_column_names = {}
             
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
-                for col in st.session_state.data_processor.dfs[0].columns:
-                    new_name = st.text_input(f"列 '{col}' の新しい名称:", 
-                                           value=config.get('column_names', {}).get(col, col))
-                    new_column_names[col] = new_name
+                columns = st.session_state.data_processor.dfs[0].columns
+                col_count = len(columns)
+                cols_per_row = 3
                 
-                if st.button("列名を保存"):
-                    st.session_state.config_manager.save_column_mapping(new_column_names)
-                    st.success("列名の設定を保存しました")
+                for i in range(0, col_count, cols_per_row):
+                    cols = st.columns(cols_per_row)
+                    for j in range(cols_per_row):
+                        col_idx = i + j
+                        if col_idx < col_count:
+                            col = columns[col_idx]
+                            with cols[j]:
+                                new_name = st.text_input(
+                                    f"列{col_idx + 1}",
+                                    value=config.get('column_names', {}).get(col, col),
+                                    help=f"元の列名: {col}"
+                                )
+                                new_column_names[col] = new_name
+                
+                col1, col2, col3 = st.columns([1, 1, 1])
+                with col2:
+                    if st.button("列名を保存", use_container_width=True):
+                        st.session_state.config_manager.save_column_mapping(new_column_names)
+                        st.success("列名の設定を保存しました")
             else:
                 st.info("データを読み込むと、列名の設定が可能になります。")
 
@@ -128,7 +143,7 @@ def main():
         with st.expander("属性項目の設定"):
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
                 attributes = st.multiselect("属性として扱う列を選択:",
-                                          st.session_state.data_processor.dfs[0].columns)
+                                       st.session_state.data_processor.dfs[0].columns)
                 if st.button("属性を保存"):
                     st.session_state.config_manager.save_attributes(attributes)
                     st.success("属性の設定を保存しました")
@@ -140,7 +155,7 @@ def main():
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
                 group_name = st.text_input("グループ名:")
                 questions = st.multiselect("グループに含める質問:",
-                                         st.session_state.data_processor.dfs[0].columns)
+                                      st.session_state.data_processor.dfs[0].columns)
                 if st.button("グループを保存"):
                     st.session_state.config_manager.save_question_group(group_name, questions)
                     st.success("質問グループを保存しました")
