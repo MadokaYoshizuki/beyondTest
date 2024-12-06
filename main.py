@@ -23,6 +23,10 @@ def main():
     st.header("1. データアップロード")
     st.write("時期の古いものから順にしてください")
     
+    # セッション状態の初期化
+    if 'upload_status' not in st.session_state:
+        st.session_state.upload_status = [False] * 3
+    
     # 3列に分割してデータアップロード
     cols = st.columns(3)
     dates = []
@@ -31,18 +35,34 @@ def main():
     for i in range(3):
         with cols[i]:
             st.subheader(f"{i+1}回目のデータ")
-            date = st.text_input(f"実施時期", key=f"date_{i}")
+            
+            # 実施時期の入力
+            date = st.text_input(
+                f"実施時期",
+                key=f"date_{i}",
+                help="例: 2023年度"
+            )
             dates.append(date)
             
+            # ファイルのアップロード
             uploaded_file = st.file_uploader(
                 "CSVファイルを選択", 
                 type="csv",
-                key=f"file_{i}"
+                key=f"file_{i}",
+                help="CSVファイルをアップロードしてください"
             )
             files.append(uploaded_file)
             
-            if date and uploaded_file:
-                st.success(f"✓ {date}のデータ")
+            # アップロード状態の更新と表示
+            st.session_state.upload_status[i] = bool(date and uploaded_file)
+            
+            if st.session_state.upload_status[i]:
+                st.success(f"✓ {date}のデータがアップロードされました")
+            else:
+                if date and not uploaded_file:
+                    st.warning("CSVファイルを選択してください")
+                elif uploaded_file and not date:
+                    st.warning("実施時期を入力してください")
 
     if any(files):  # いずれかのファイルがアップロードされている場合
         if st.button("データを読み込む"):
