@@ -9,9 +9,23 @@ class DataProcessor:
     def load_data(self, files, dates):
         self.dfs = []
         self.dates = dates
+        first_df = None
         
-        for file in files:
+        for i, file in enumerate(files):
             df = pd.read_csv(file, encoding='utf-8-sig')
+            
+            # 最初のファイルの構造を保存
+            if i == 0:
+                first_df = df
+            else:
+                # 構造の比較
+                for col in df.columns:
+                    if col in first_df.columns:
+                        current_type = self.get_answer_types(pd.DataFrame({col: df[col]}))[col]
+                        first_type = self.get_answer_types(pd.DataFrame({col: first_df[col]}))[col]
+                        if current_type != first_type:
+                            st.warning(f"警告: {col}の回答タイプが一致しません。{i+1}回目: {current_type}, 1回目: {first_type}")
+            
             self.dfs.append(df)
 
     def get_statistics(self, df):

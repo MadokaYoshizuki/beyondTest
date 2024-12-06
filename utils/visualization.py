@@ -172,6 +172,9 @@ class Visualizer:
             st.info("データを読み込んでください。")
             return
             
+        # 列名のマッピングを取得
+        column_names = config_manager.config.get('column_names', {})
+            
         year_options = [f"{i+1}回目のデータ" for i in range(len(dfs))]
         selected_year_idx = st.selectbox(
             "データを選択:", 
@@ -195,10 +198,13 @@ class Visualizer:
         if not numeric_columns.empty:
             data = df[numeric_columns].corr()
             
+            # 列名を日本語表示に変換
+            display_columns = [column_names.get(col, col) for col in data.columns]
+            
             fig = go.Figure(data=go.Heatmap(
                 z=data,
-                x=data.columns,
-                y=data.columns,
+                x=display_columns,
+                y=display_columns,
                 colorscale='RdBu'
             ))
             st.plotly_chart(fig)
@@ -220,7 +226,15 @@ class Visualizer:
                 format_func=lambda x: numeric_display_names[x]
             )
             
-            fig = px.scatter(df, x=x_axis, y=y_axis)
+            fig = px.scatter(
+                df,
+                x=x_axis,
+                y=y_axis,
+                labels={
+                    x_axis: numeric_display_names[x_axis],
+                    y_axis: numeric_display_names[y_axis]
+                }
+            )
             st.plotly_chart(fig)
 
         # Bar chart for multiple choice questions
