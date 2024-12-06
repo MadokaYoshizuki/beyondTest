@@ -5,18 +5,24 @@ import pandas as pd
 
 class Visualizer:
     def _save_to_excel(self, data_dict, filename):
-        # 一時ファイルとしてExcelを保存
         excel_path = f"{filename}.xlsx"
         
-        # ExcelWriterを使用して複数シートを作成
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            # データが辞書形式の場合（複数シート）
             if isinstance(data_dict, dict):
                 for sheet_name, df in data_dict.items():
-                    df.to_excel(writer, sheet_name=sheet_name, index=True)
-            # 単一のDataFrameの場合
+                    # インデックスと列名のみの単純な表として出力
+                    df.to_excel(
+                        writer,
+                        sheet_name=sheet_name,
+                        index=True,
+                        header=True
+                    )
             else:
-                data_dict.to_excel(writer, index=True)
+                data_dict.to_excel(
+                    writer,
+                    index=True,
+                    header=True
+                )
         
         # ダウンロードボタンを表示
         with open(excel_path, 'rb') as f:
@@ -136,7 +142,7 @@ class Visualizer:
             
             # 結果の表示と保存
             if attribute != "全体":
-                # 両方のデータフレームを1つのExcelファイルに保存
+                # 属性別表示時のみ別シートとして出力
                 self._save_to_excel(
                     {
                         "平均値": results_mean,
@@ -150,9 +156,13 @@ class Visualizer:
                 st.write("100点換算")
                 st.dataframe(results_score)
             else:
+                # 全体表示時は1つの表で表示
+                combined_results = pd.DataFrame()
+                combined_results["平均"] = results["平均"]
+                combined_results["100点換算"] = results["100点換算"]
                 st.write("平均値と100点換算")
-                st.dataframe(results)
-                self._save_to_excel(results, "numeric_analysis_all")
+                st.dataframe(combined_results)
+                self._save_to_excel(combined_results, "numeric_analysis_all")
 
     def _display_multiple_choice_analysis(self, df, attribute, config_manager):
         # 列名のマッピングを取得
