@@ -151,30 +151,26 @@ def main():
                 st.info("データを読み込むと、属性の設定が可能になります。")
 
         # Question grouping
-        with st.expander("質問グループの設定"):
+        with st.expander("質問グループの設定", expanded=True):
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
                 # 列名のマッピングを取得
                 column_names = st.session_state.config_manager.config.get('column_names', {})
                 
-                # 既存の質問グループの一覧表示
+                # 既存の質問グループの一覧表示と削除機能
                 if question_groups := st.session_state.config_manager.config.get('question_groups', {}):
                     st.write("登録済み質問グループ一覧")
                     
-                    # 表形式でグループ一覧を表示
-                    group_data = []
-                    for group_name, questions in question_groups.items():
-                        group_data.append({
-                            "グループ名": group_name,
-                            "所属質問数": len(questions),
-                            "質問項目": ", ".join([column_names.get(q, q) for q in questions])
-                        })
-                    
-                    if group_data:
-                        st.dataframe(
-                            pd.DataFrame(group_data),
-                            hide_index=True,
-                            use_container_width=True
-                        )
+                    for group_name, questions in list(question_groups.items()):
+                        col1, col2 = st.columns([5, 1])
+                        with col1:
+                            st.write(f"📁 {group_name}")
+                            st.write(f"質問項目: {', '.join([column_names.get(q, q) for q in questions])}")
+                        with col2:
+                            if st.button("削除", key=f"delete_{group_name}"):
+                                del st.session_state.config_manager.config['question_groups'][group_name]
+                                st.session_state.config_manager.save_config()
+                                st.success(f"グループ '{group_name}' を削除しました")
+                                st.experimental_rerun()
                 
                 # 新規グループの追加
                 st.write("新規グループの追加")

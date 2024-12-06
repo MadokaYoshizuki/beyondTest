@@ -10,7 +10,6 @@ class Visualizer:
         with pd.ExcelWriter(excel_path, engine='openpyxl', mode='w') as writer:
             if isinstance(data_dict, dict):
                 for sheet_name, df in data_dict.items():
-                    # 書式設定を完全に省いてデータのみを出力
                     df.to_excel(
                         writer,
                         sheet_name=sheet_name,
@@ -19,7 +18,6 @@ class Visualizer:
                         engine='openpyxl'
                     )
             else:
-                # 単一のDataFrameの場合も同様
                 data_dict.to_excel(
                     writer,
                     index=True,
@@ -27,7 +25,6 @@ class Visualizer:
                     engine='openpyxl'
                 )
         
-        # ダウンロードボタンを表示
         with open(excel_path, 'rb') as f:
             st.download_button(
                 label="Excelファイルをダウンロード",
@@ -36,16 +33,133 @@ class Visualizer:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         
-        # 一時ファイルを削除
         import os
         os.remove(excel_path)
+
+    def _display_numeric_analysis(self, df, attribute, config_manager):
+        column_names = config_manager.config.get('column_names', {})
+        question_groups = config_manager.config.get('question_groups', {})
+        
+        if attribute == "全体":
+            results = pd.DataFrame()
+            group_results = pd.DataFrame()
+            
+            # 数値列の処理
+            for col in df.columns:
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    mean_val = df[col].mean()
+                    max_val = df[col].max()
+                    display_name = column_names.get(col, col)
+                    
+                    results.loc[display_name, "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
+                    
+                    if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
+                        score = (mean_val / max_val) * 100
+                        results.loc[display_name, "100点換算"] = '{:g}'.format(score)
+                    else:
+                        results.loc[display_name, "100点換算"] = '-'
+                        
+            # グループごとの集計結果を計算
+            if question_groups:
+                for group_name, questions in question_groups.items():
+                    numeric_questions = [q for q in questions if q in df.columns and pd.api.types.is_numeric_dtype(df[q])]
+                    if numeric_questions:
+                        group_mean = df[numeric_questions].mean().mean()
+                        max_val = df[numeric_questions].max().max()
+                        group_results.loc[group_name, "平均"] = '{:g}'.format(group_mean) if pd.notnull(group_mean) else '-'
+                        if pd.notnull(group_mean) and pd.notnull(max_val) and max_val != 0:
+                            score = (group_mean / max_val) * 100
+                            group_results.loc[group_name, "100点換算"] = '{:g}'.format(score)
+                        else:
+                            group_results.loc[group_name, "100点換算"] = '-'
+
+            if not results.empty:
+                st.write("質問ごとの分析結果")
+                st.dataframe(results)
+                
+                if not group_results.empty:
+                    st.write("質問グループごとの分析結果")
+                    st.dataframe(group_results)
+                    
+                # Excelエクスポートに両方のデータを含める
+                excel_data = {
+                    "質問ごとの分析": results,
+                    "グループごとの分析": group_results
+                }
+                self._save_to_excel(excel_data, "numeric_analysis_all")
+            else:
+                st.info("数値データが見つかりませんでした。")
+
+        else:
+            # 属性別の分析
+            numeric_cols = df.select_dtypes(include=['number']).columns
+            if len(numeric_cols) == 0:
+                st.info("数値データが見つかりませんでした。")
+                return
+                
+            results_dict = {
+                '平均': {},
+                '100点換算': {}
+            }
+            
+            for col in numeric_cols:
+                results_dict['平均'][col] = {}
+                results_dict['100点換算'][col] = {}
+                max_val = df[col].max()
+                
+                total_mean = df[col].mean()
+                results_dict['平均'][col]['全体'] = '{:g}'.format(total_mean) if pd.notnull(total_mean) else '-'
+                if pd.notnull(total_mean) and pd.notnull(max_val) and max_val != 0:
+                    total_score = (total_mean / max_val) * 100
+                    results_dict['100点換算'][col]['全体'] = '{:g}'.format(total_score)
+                else:
+                    results_dict['100点換算'][col]['全体'] = '-'
+                
+                for value in df[attribute].unique():
+                    subset = df[df[attribute] == value]
+                    mean_val = subset[col].mean()
+                    
+                    results_dict['平均'][col][value] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
+                    
+                    if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
+                        score = (mean_val / max_val) * 100
+                        results_dict['100点換算'][col][value] = '{:g}'.format(score)
+                    else:
+                        results_dict['100点換算'][col][value] = '-'
+            
+            results_mean = pd.DataFrame(results_dict['平均']).T
+            results_score = pd.DataFrame(results_dict['100点換算']).T
+            
+            column_order = ['全体'] + [col for col in results_mean.columns if col != '全体']
+            results_mean = results_mean[column_order]
+            results_score = results_score[column_order]
+            
+            if attribute != "全体":
+                self._save_to_excel(
+                    {
+                        "平均値": results_mean,
+                        "100点換算": results_score
+                    },
+                    f"numeric_analysis_{attribute}"
+                )
+                
+                st.write("平均値")
+                st.dataframe(results_mean)
+                st.write("100点換算")
+                st.dataframe(results_score)
+            else:
+                combined_results = pd.DataFrame()
+                combined_results["平均"] = results["平均"]
+                combined_results["100点換算"] = results["100点換算"]
+                st.write("平均値と100点換算")
+                st.dataframe(combined_results)
+                self._save_to_excel(combined_results, "numeric_analysis_all")
 
     def display_numerical_tables(self, dfs, config_manager):
         if not dfs:
             st.info("データを読み込んでください。")
             return
             
-        # 質問グループの取得
         question_groups = config_manager.config.get('question_groups', {})
             
         year_options = [f"{i+1}回目のデータ" for i in range(len(dfs))]
@@ -55,11 +169,8 @@ class Visualizer:
             format_func=lambda x: year_options[x]
         )
         
-        # 属性の表示名を取得
         column_names = config_manager.config.get('column_names', {})
-        attributes = ["全体"] + [
-            attr for attr in config_manager.config['attributes']
-        ]
+        attributes = ["全体"] + config_manager.config['attributes']
         attribute_display_names = {
             attr: column_names.get(attr, attr) if attr != "全体" else attr
             for attr in attributes
@@ -80,142 +191,6 @@ class Visualizer:
                 self._display_numeric_analysis(df, selected_attribute, config_manager)
             else:
                 self._display_multiple_choice_analysis(df, selected_attribute, config_manager)
-
-    def _display_numeric_analysis(self, df, attribute, config_manager):
-        # 列名とグループ情報の取得
-        column_names = config_manager.config.get('column_names', {})
-        question_groups = config_manager.config.get('question_groups', {})
-        
-        if attribute == "全体":
-            results = pd.DataFrame()
-            
-            # 数値列の処理
-            for col in df.columns:
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    mean_val = df[col].mean()
-                    max_val = df[col].max()
-                    display_name = column_names.get(col, col)
-                    
-                    # 平均値の計算
-                    results.loc[display_name, "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
-                    
-                    # 100点換算の計算
-                    if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
-                        score = (mean_val / max_val) * 100
-                        results.loc[display_name, "100点換算"] = '{:g}'.format(score)
-                    else:
-                        results.loc[display_name, "100点換算"] = '-'
-                        
-            # グループごとの集計結果を計算
-            if question_groups:
-                group_results = pd.DataFrame()
-                for group_name, questions in question_groups.items():
-                    numeric_questions = [q for q in questions if q in df.columns and pd.api.types.is_numeric_dtype(df[q])]
-                    if numeric_questions:
-                        group_mean = df[numeric_questions].mean().mean()
-                        max_val = df[numeric_questions].max().max()
-                        group_results.loc[group_name, "平均"] = '{:g}'.format(group_mean) if pd.notnull(group_mean) else '-'
-                        if pd.notnull(group_mean) and pd.notnull(max_val) and max_val != 0:
-                            score = (group_mean / max_val) * 100
-                            group_results.loc[group_name, "100点換算"] = '{:g}'.format(score)
-                        else:
-                            group_results.loc[group_name, "100点換算"] = '-'
-
-                if not group_results.empty:
-                    st.write("グループごとの分析結果")
-                    st.dataframe(group_results)
-
-            if not results.empty:
-                st.write("質問ごとの分析結果")
-                st.dataframe(results)
-                
-                if not group_results.empty:
-                    st.write("質問グループごとの分析結果")
-                    st.dataframe(group_results)
-                    
-                # Excelエクスポートに両方のデータを含める
-                excel_data = {
-                    "質問ごとの分析": results,
-                    "グループごとの分析": group_results
-                }
-                self._save_to_excel(excel_data, "numeric_analysis_all")
-            else:
-                st.info("数値データが見つかりませんでした。")
-        else:
-            # 数値列を抽出
-            numeric_cols = df.select_dtypes(include=['number']).columns
-            if len(numeric_cols) == 0:
-                st.info("数値データが見つかりませんでした。")
-                return
-                
-            # 属性値ごとの結果を格納するための辞書
-            results_dict = {
-                '平均': {},
-                '100点換算': {}
-            }
-            
-            # 各数値列について処理
-            for col in numeric_cols:
-                results_dict['平均'][col] = {}
-                results_dict['100点換算'][col] = {}
-                max_val = df[col].max()  # 全体の最大値を基準とする
-                
-                # まず全体のデータを計算
-                total_mean = df[col].mean()
-                results_dict['平均'][col]['全体'] = '{:g}'.format(total_mean) if pd.notnull(total_mean) else '-'
-                if pd.notnull(total_mean) and pd.notnull(max_val) and max_val != 0:
-                    total_score = (total_mean / max_val) * 100
-                    results_dict['100点換算'][col]['全体'] = '{:g}'.format(total_score)
-                else:
-                    results_dict['100点換算'][col]['全体'] = '-'
-                
-                # 属性値ごとのデータを計算
-                for value in df[attribute].unique():
-                    subset = df[df[attribute] == value]
-                    mean_val = subset[col].mean()
-                    
-                    # 平均値の格納
-                    results_dict['平均'][col][value] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
-                    
-                    # 100点換算値の格納
-                    if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
-                        score = (mean_val / max_val) * 100
-                        results_dict['100点換算'][col][value] = '{:g}'.format(score)
-                    else:
-                        results_dict['100点換算'][col][value] = '-'
-            
-            # DataFrameに変換
-            results_mean = pd.DataFrame(results_dict['平均']).T
-            results_score = pd.DataFrame(results_dict['100点換算']).T
-            
-            # 列の順序を調整（全体を最初に配置）
-            column_order = ['全体'] + [col for col in results_mean.columns if col != '全体']
-            results_mean = results_mean[column_order]
-            results_score = results_score[column_order]
-            
-            # 結果の表示と保存
-            if attribute != "全体":
-                # 属性別表示時のみ別シートとして出力
-                self._save_to_excel(
-                    {
-                        "平均値": results_mean,
-                        "100点換算": results_score
-                    },
-                    f"numeric_analysis_{attribute}"
-                )
-                
-                st.write("平均値")
-                st.dataframe(results_mean)
-                st.write("100点換算")
-                st.dataframe(results_score)
-            else:
-                # 全体表示時は1つの表で表示
-                combined_results = pd.DataFrame()
-                combined_results["平均"] = results["平均"]
-                combined_results["100点換算"] = results["100点換算"]
-                st.write("平均値と100点換算")
-                st.dataframe(combined_results)
-                self._save_to_excel(combined_results, "numeric_analysis_all")
 
     def _display_multiple_choice_analysis(self, df, attribute, config_manager):
         # 列名のマッピングを取得
