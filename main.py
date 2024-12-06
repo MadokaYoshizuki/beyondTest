@@ -160,37 +160,25 @@ def main():
                 if question_groups := st.session_state.config_manager.config.get('question_groups', {}):
                     st.write("登録済み質問グループ一覧")
                     
-                    # テーブル形式でグループ一覧を表示とチェックボックスの追加
-                    group_data = []
+                    # グループごとに1行で表示
                     selected_groups = []
-                    
                     for group_name, questions in question_groups.items():
-                        col1, col2 = st.columns([0.1, 0.9])
+                        col1, col2, col3 = st.columns([0.1, 0.7, 0.2])
                         with col1:
                             if st.checkbox("", key=f"delete_{group_name}"):
                                 selected_groups.append(group_name)
                         with col2:
-                            group_data.append({
-                                "グループ名": group_name,
-                                "所属質問数": len(questions),
-                                "質問項目": ", ".join([column_names.get(q, q) for q in questions])
-                            })
+                            st.write(f"📁 {group_name} ({len(questions)}問)")
+                            st.caption(f"質問項目: {', '.join([column_names.get(q, q) for q in questions])}")
                     
-                    if group_data:
-                        group_df = pd.DataFrame(group_data)
-                        st.dataframe(
-                            group_df,
-                            hide_index=True,
-                            use_container_width=True
-                        )
-                        
-                        # 削除機能
-                        if selected_groups and st.button("選択したグループを削除"):
+                    # 削除機能
+                    if selected_groups:
+                        if st.button("選択したグループを削除"):
                             for group_name in selected_groups:
                                 del st.session_state.config_manager.config['question_groups'][group_name]
                             st.session_state.config_manager.save_config()
                             st.success(f"選択したグループを削除しました")
-                            st.experimental_rerun()
+                            st.rerun()  # experimental_rerunをrerunに変更
                 
                 # 新規グループの追加
                 st.write("新規グループの追加")
@@ -201,9 +189,12 @@ def main():
                     format_func=lambda x: column_names.get(x, x)
                 )
                 if st.button("グループを保存"):
-                    st.session_state.config_manager.save_question_group(group_name, questions)
-                    st.success("質問グループを保存しました")
-                    st.experimental_rerun()  # 保存後に画面を更新
+                    if group_name and questions:
+                        st.session_state.config_manager.save_question_group(group_name, questions)
+                        st.success("質問グループを保存しました")
+                        st.rerun()  # experimental_rerunをrerunに変更
+                    else:
+                        st.warning("グループ名と質問項目を入力してください")
             else:
                 st.info("データを読み込むと、質問グループの設定が可能になります。")
 
