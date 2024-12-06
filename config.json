@@ -8,7 +8,13 @@
         "\u5f79\u8077\u540d\u79f0",
         "\u52e4\u7d9a\u5e74\u6570\u5225\u540d\u79f0"
     ],
-    "question_groups": {},
+    "question_groups": {
+        "\u30ab\u30c6\u30b4\u30ea1": [
+            "Q.2",
+            "Q.5",
+            "Q.7"
+        ]
+    },
     "value_mappings": {},
     "value_groups": {}
 }

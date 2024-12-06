@@ -54,6 +54,16 @@ class Visualizer:
                 results_dict['100点換算'][col] = {}
                 max_val = df[col].max()  # 全体の最大値を基準とする
                 
+                # まず全体のデータを計算
+                total_mean = df[col].mean()
+                results_dict['平均'][col]['全体'] = '{:g}'.format(total_mean) if pd.notnull(total_mean) else '-'
+                if pd.notnull(total_mean) and pd.notnull(max_val) and max_val != 0:
+                    total_score = (total_mean / max_val) * 100
+                    results_dict['100点換算'][col]['全体'] = '{:g}'.format(total_score)
+                else:
+                    results_dict['100点換算'][col]['全体'] = '-'
+                
+                # 属性値ごとのデータを計算
                 for value in df[attribute].unique():
                     subset = df[df[attribute] == value]
                     mean_val = subset[col].mean()
@@ -71,6 +81,11 @@ class Visualizer:
             # DataFrameに変換
             results_mean = pd.DataFrame(results_dict['平均']).T
             results_score = pd.DataFrame(results_dict['100点換算']).T
+            
+            # 列の順序を調整（全体を最初に配置）
+            column_order = ['全体'] + [col for col in results_mean.columns if col != '全体']
+            results_mean = results_mean[column_order]
+            results_score = results_score[column_order]
             
             # 結果の表示
             st.write("平均値")
