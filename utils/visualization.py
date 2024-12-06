@@ -27,14 +27,18 @@ class Visualizer:
                 self._display_multiple_choice_analysis(df, selected_attribute, config_manager)
 
     def _display_numeric_analysis(self, df, attribute, config_manager):
+        # 列名のマッピングを取得
+        column_names = config_manager.config.get('column_names', {})
+        
         if attribute == "全体":
             results = pd.DataFrame()
             for col in df.columns:
                 if pd.api.types.is_numeric_dtype(df[col]):
                     mean_val = df[col].mean()
                     max_val = df[col].max()
-                    results.loc[col, "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
-                    results.loc[col, "100点換算"] = '{:g}'.format((mean_val / max_val) * 100) if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0 else '-'
+                    display_name = column_names.get(col, col)
+                    results.loc[display_name, "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
+                    results.loc[display_name, "100点換算"] = '{:g}'.format((mean_val / max_val) * 100) if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0 else '-'
         else:
             # 数値列を抽出
             numeric_cols = df.select_dtypes(include=['number']).columns
@@ -98,82 +102,52 @@ class Visualizer:
         st.dataframe(results)
 
     def _display_multiple_choice_analysis(self, df, attribute, config_manager):
+        # 列名のマッピングを取得
+        column_names = config_manager.config.get('column_names', {})
+        
         if attribute == "全体":
             results = pd.DataFrame()
             
             for col in df.columns:
                 try:
-                    # 数値データと文字列データを適切に処理
-                    if pd.api.types.is_numeric_dtype(df[col]):
-                        continue  # 数値データはスキップ
-                    
-                    # 文字列として処理
-                    values = df[col].fillna('').astype(str)
-                    # カンマを含む値のみを処理（複数回答）
-                    if not values.str.contains(',').any():
+                    if pd.api.types.is_numeric_dtype(df[col]) or not df[col].fillna('').astype(str).str.contains(',').any():
                         continue
                         
-                    values = values.str.split(',').explode()
-                    counts = values.value_counts().sort_index()  # 昇順でソート
-                    results[col] = counts
+                    values = df[col].fillna('').astype(str).str.split(',').explode()
+                    counts = values.value_counts().sort_index()
+                    results[column_names.get(col, col)] = counts
+                    
                 except Exception as e:
                     st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
                     continue
-                    
+            
             if not results.empty:
                 st.write("回答件数")
                 st.dataframe(results)
             else:
                 st.info("複数回答の質問が見つかりませんでした。")
         else:
-            # 属性値ごとにループ
             for attr_value in df[attribute].unique():
                 st.write(f"【{attr_value}】")
                 
-                # この属性値のデータのみを抽出
                 subset_df = df[df[attribute] == attr_value]
-                
-                # 結果格納用のリストを作成
-                results_data = []
+                results = pd.DataFrame()
                 
                 for col in df.columns:
                     try:
                         if pd.api.types.is_numeric_dtype(df[col]) or not df[col].fillna('').astype(str).str.contains(',').any():
                             continue
                             
-                        # 元のデータフレームの列順を保持するため、列名とインデックスを保存
-                        col_idx = df.columns.get_loc(col)
+                        values = subset_df[col].fillna('').astype(str).str.split(',').explode()
+                        counts = values.value_counts().sort_index()
+                        results[column_names.get(col, col)] = counts
                         
-                        subset_values = subset_df[col].fillna('').astype(str).str.split(',').explode()
-                        counts = subset_values.value_counts().sort_index()
-                        
-                        for answer, count in counts.items():
-                            results_data.append({
-                                '質問番号': f'Q{col_idx + 1}',
-                                '回答': answer,
-                                '件数': count
-                            })
-                    
                     except Exception as e:
                         st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
                         continue
                 
-                if results_data:
-                    # DataFrameの作成
-                    results_df = pd.DataFrame(results_data)
-                    
-                    # ピボットテーブルの作成
-                    pivot_df = results_df.pivot_table(
-                        index='回答',
-                        columns='質問番号',
-                        values='件数',
-                        fill_value=0
-                    )
-                    
-                    # 列の順序を元のデータの順序に合わせる
-                    pivot_df = pivot_df.reindex(sorted(pivot_df.columns, key=lambda x: int(x[1:])))
-                    
-                    st.dataframe(pivot_df)
+                if not results.empty:
+                    st.dataframe(results)
                 else:
                     st.info("複数回答の質問が見つかりませんでした。")
 
@@ -226,19 +200,31 @@ class Visualizer:
 
         # Bar chart for multiple choice questions
         st.subheader("複数回答の分布")
+        column_names = config_manager.config.get('column_names', {})
         multiple_choice_cols = []
+        multiple_choice_display_names = {}
+        
         for col in df.columns:
             if not pd.api.types.is_numeric_dtype(df[col]):
                 values = df[col].fillna('').astype(str)
                 if values.str.contains(',').any():
                     multiple_choice_cols.append(col)
+                    multiple_choice_display_names[col] = column_names.get(col, col)
         
         if multiple_choice_cols:
-            selected_col = st.selectbox("質問を選択:", multiple_choice_cols)
+            selected_col = st.selectbox(
+                "質問を選択:",
+                multiple_choice_cols,
+                format_func=lambda x: multiple_choice_display_names[x]
+            )
             values = df[selected_col].fillna('').astype(str).str.split(',').explode()
             counts = values.value_counts()
             
-            fig = px.bar(x=counts.index, y=counts.values)
+            fig = px.bar(
+                x=counts.index,
+                y=counts.values,
+                title=f"{multiple_choice_display_names[selected_col]}の回答分布"
+            )
             st.plotly_chart(fig)
         else:
             st.info("複数回答の質問が見つかりませんでした。")
