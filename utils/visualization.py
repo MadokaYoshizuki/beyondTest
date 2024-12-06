@@ -33,8 +33,10 @@ class Visualizer:
         if attribute == "全体":
             for col in df.columns:
                 if pd.api.types.is_numeric_dtype(df[col]):
-                    results.loc[col, "平均"] = df[col].mean()
-                    results.loc[col, "100点換算"] = (df[col].mean() / df[col].max()) * 100
+                    mean_val = df[col].mean()
+                    max_val = df[col].max()
+                    results.loc[col, "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
+                    results.loc[col, "100点換算"] = '{:g}'.format((mean_val / max_val) * 100) if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0 else '-'
         else:
             for value in df[attribute].unique():
                 subset = df[df[attribute] == value]

@@ -91,7 +91,14 @@ def main():
             with st.expander(f"データセット {i+1} の分析"):
                 st.write("基本統計量:")
                 stats = st.session_state.data_processor.get_statistics(df)
-                st.dataframe(stats.style.apply(lambda x: ['background-color: pink' if v == x.min() else '' for v in x]))
+                
+                def highlight_missing(x):
+                    if x.name == 'count':
+                        return ['background-color: pink' if pd.isna(v) else '' for v in x]
+                    return ['' for _ in x]
+                    
+                formatted_stats = stats.apply(lambda x: ['{:g}'.format(v) if isinstance(v, float) else str(v) for v in x])
+                st.dataframe(formatted_stats.style.apply(highlight_missing, axis=1))
                 
                 st.write("回答タイプ:")
                 answer_types = st.session_state.data_processor.get_answer_types(df)

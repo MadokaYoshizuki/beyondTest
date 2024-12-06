@@ -82,7 +82,7 @@ class PDFGenerator:
                 stats = numeric_df.describe()
                 table_data = [["統計量"] + list(stats.columns)]
                 for idx in stats.index:
-                    row = [idx] + [f"{x:.2f}" if isinstance(x, float) else str(x) for x in stats.loc[idx]]
+                    row = [idx] + ['{:g}'.format(x) if isinstance(x, float) else str(x) for x in stats.loc[idx]]
                     table_data.append(row)
                 
                 table = Table(table_data)

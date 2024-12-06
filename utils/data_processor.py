@@ -15,7 +15,10 @@ class DataProcessor:
             self.dfs.append(df)
 
     def get_statistics(self, df):
-        return df.describe()
+        numeric_df = df.select_dtypes(include=['number'])
+        if numeric_df.empty:
+            return pd.DataFrame()
+        return numeric_df.describe()
 
     def get_answer_types(self, df):
         answer_types = {}
