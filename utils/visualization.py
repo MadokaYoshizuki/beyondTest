@@ -126,54 +126,56 @@ class Visualizer:
             else:
                 st.info("複数回答の質問が見つかりませんでした。")
         else:
-            # 結果格納用のリストを作成
-            results_data = []
-
-            for col in df.columns:
-                try:
-                    if pd.api.types.is_numeric_dtype(df[col]) or not df[col].fillna('').astype(str).str.contains(',').any():
-                        continue
+            # 属性値ごとにループ
+            for attr_value in df[attribute].unique():
+                st.write(f"【{attr_value}】")
+                
+                # この属性値のデータのみを抽出
+                subset_df = df[df[attribute] == attr_value]
+                
+                # 結果格納用のリストを作成
+                results_data = []
+                
+                for col in df.columns:
+                    try:
+                        if pd.api.types.is_numeric_dtype(df[col]) or not df[col].fillna('').astype(str).str.contains(',').any():
+                            continue
+                            
+                        # 元のデータフレームの列順を保持するため、列名とインデックスを保存
+                        col_idx = df.columns.get_loc(col)
                         
-                    # 元のデータフレームの列順を保持するため、列名とインデックスを保存
-                    col_idx = df.columns.get_loc(col)
-                    
-                    for value in df[attribute].unique():
-                        subset = df[df[attribute] == value]
-                        subset_values = subset[col].fillna('').astype(str).str.split(',').explode()
+                        subset_values = subset_df[col].fillna('').astype(str).str.split(',').explode()
                         counts = subset_values.value_counts().sort_index()
                         
                         for answer, count in counts.items():
                             results_data.append({
                                 '質問番号': f'Q{col_idx + 1}',
-                                '質問': col,
-                                '属性値': value,
                                 '回答': answer,
                                 '件数': count
                             })
-
-                except Exception as e:
-                    st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
-                    continue
-            
-            if results_data:
-                # DataFrameの作成
-                results_df = pd.DataFrame(results_data)
+                    
+                    except Exception as e:
+                        st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
+                        continue
                 
-                # ピボットテーブルの作成
-                pivot_df = results_df.pivot_table(
-                    index=['属性値', '回答'],
-                    columns='質問番号',
-                    values='件数',
-                    fill_value=0
-                )
-                
-                # 列の順序を元のデータの順序に合わせる
-                pivot_df = pivot_df.reindex(sorted(pivot_df.columns, key=lambda x: int(x[1:])))
-                
-                st.write("回答件数（属性別）")
-                st.dataframe(pivot_df)
-            else:
-                st.info("複数回答の質問が見つかりませんでした。")
+                if results_data:
+                    # DataFrameの作成
+                    results_df = pd.DataFrame(results_data)
+                    
+                    # ピボットテーブルの作成
+                    pivot_df = results_df.pivot_table(
+                        index='回答',
+                        columns='質問番号',
+                        values='件数',
+                        fill_value=0
+                    )
+                    
+                    # 列の順序を元のデータの順序に合わせる
+                    pivot_df = pivot_df.reindex(sorted(pivot_df.columns, key=lambda x: int(x[1:])))
+                    
+                    st.dataframe(pivot_df)
+                else:
+                    st.info("複数回答の質問が見つかりませんでした。")
 
     def display_dashboard(self, dfs, config_manager):
         if not dfs:
