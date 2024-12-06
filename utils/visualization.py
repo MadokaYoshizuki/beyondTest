@@ -5,13 +5,18 @@ import pandas as pd
 
 class Visualizer:
     def display_numerical_tables(self, dfs, config_manager):
-        selected_year = st.selectbox("年度を選択:", range(len(dfs)))
+        if not dfs:
+            st.info("データを読み込んでください。")
+            return
+            
+        year_options = [f"{i+1}回目のデータ" for i in range(len(dfs))]
+        selected_year_idx = st.selectbox("データを選択:", range(len(dfs)), format_func=lambda x: year_options[x])
         selected_attribute = st.selectbox(
             "属性項目を選択:",
             ["全体"] + config_manager.config['attributes']
         )
 
-        df = dfs[selected_year]
+        df = dfs[selected_year_idx]
         
         for question_type in ["数値回答", "数値回答（複数回答）"]:
             st.subheader(question_type)
@@ -60,14 +65,24 @@ class Visualizer:
         st.dataframe(results)
 
     def display_dashboard(self, dfs, config_manager):
-        selected_year = st.selectbox("年度を選択:", range(len(dfs)), key="dashboard_year")
+        if not dfs:
+            st.info("データを読み込んでください。")
+            return
+            
+        year_options = [f"{i+1}回目のデータ" for i in range(len(dfs))]
+        selected_year_idx = st.selectbox(
+            "データを選択:", 
+            range(len(dfs)), 
+            format_func=lambda x: year_options[x],
+            key="dashboard_year"
+        )
         selected_attribute = st.selectbox(
             "属性項目を選択:",
             ["全体"] + config_manager.config['attributes'],
             key="dashboard_attribute"
         )
 
-        df = dfs[selected_year]
+        df = dfs[selected_year_idx]
 
         # Heatmap
         st.subheader("ヒートマップ")

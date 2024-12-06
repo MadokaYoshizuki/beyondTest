@@ -8,6 +8,10 @@ import os
 
 class PDFGenerator:
     def generate_pdf(self, dfs, config_manager, visualizer):
+        if not dfs:
+            st.error("PDFを生成するにはデータが必要です。")
+            return None
+            
         output_path = "survey_analysis_report.pdf"
         doc = SimpleDocTemplate(output_path, pagesize=letter)
         styles = getSampleStyleSheet()

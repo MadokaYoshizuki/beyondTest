@@ -99,20 +99,26 @@ def main():
 
         # Attribute selection
         with st.expander("属性項目の設定"):
-            attributes = st.multiselect("属性として扱う列を選択:",
-                                      st.session_state.data_processor.dfs[0].columns)
-            if st.button("属性を保存"):
-                st.session_state.config_manager.save_attributes(attributes)
-                st.success("属性の設定を保存しました")
+            if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                attributes = st.multiselect("属性として扱う列を選択:",
+                                          st.session_state.data_processor.dfs[0].columns)
+                if st.button("属性を保存"):
+                    st.session_state.config_manager.save_attributes(attributes)
+                    st.success("属性の設定を保存しました")
+            else:
+                st.info("データを読み込むと、属性の設定が可能になります。")
 
         # Question grouping
         with st.expander("質問グループの設定"):
-            group_name = st.text_input("グループ名:")
-            questions = st.multiselect("グループに含める質問:",
-                                     st.session_state.data_processor.dfs[0].columns)
-            if st.button("グループを保存"):
-                st.session_state.config_manager.save_question_group(group_name, questions)
-                st.success("質問グループを保存しました")
+            if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                group_name = st.text_input("グループ名:")
+                questions = st.multiselect("グループに含める質問:",
+                                         st.session_state.data_processor.dfs[0].columns)
+                if st.button("グループを保存"):
+                    st.session_state.config_manager.save_question_group(group_name, questions)
+                    st.success("質問グループを保存しました")
+            else:
+                st.info("データを読み込むと、質問グループの設定が可能になります。")
 
         # Visualization section
         st.header("4. 可視化")
