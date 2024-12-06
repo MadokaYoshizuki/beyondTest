@@ -25,20 +25,33 @@ class DataProcessor:
         
         for column in df.columns:
             values = df[column].dropna()
-            
-            # Check if all values are numeric
+            if len(values) == 0:
+                answer_types[column] = "データなし"
+                continue
+                
+            # 数値判定の優先順位を上げる
             try:
-                values = values.astype(float)
-                if all(values.apply(lambda x: float(x).is_integer())):
-                    answer_types[column] = "数値回答"
-                else:
-                    answer_types[column] = "テキスト回答"
-            except:
-                # Check for multiple numeric values separated by comma
-                if all(values.str.match(r'^\d+(?:,\d+)*$')):
+                # pd.to_numericを使用して数値変換を試みる
+                numeric_values = pd.to_numeric(values, errors='raise')
+                if numeric_values.dtype in ['int64', 'float64']:
+                    if all(numeric_values.apply(lambda x: float(x).is_integer())):
+                        answer_types[column] = "数値回答"
+                    else:
+                        answer_types[column] = "数値回答（小数）"
+                    continue
+            except (ValueError, TypeError):
+                pass
+            
+            # 複数回答（数値）のチェック
+            try:
+                if all(values.astype(str).str.match(r'^\d+(?:,\d+)*$')):
                     answer_types[column] = "数値回答（複数回答）"
-                else:
-                    answer_types[column] = "テキスト回答"
+                    continue
+            except (ValueError, TypeError, AttributeError):
+                pass
+            
+            # テキスト回答として処理
+            answer_types[column] = "テキスト回答"
         
         return answer_types
 

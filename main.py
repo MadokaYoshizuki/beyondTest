@@ -88,7 +88,7 @@ def main():
         
         # Display raw data and analysis
         for i, df in enumerate(st.session_state.data_processor.dfs):
-            with st.expander(f"データセット {i+1} の分析"):
+            with st.expander(f"データセット {i+1} ({st.session_state.data_processor.dates[i]}) の分析"):
                 st.write("基本統計量:")
                 stats = st.session_state.data_processor.get_statistics(df)
                 
