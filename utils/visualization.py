@@ -215,8 +215,8 @@ class Visualizer:
             all_results = {}
             
             for attr_value in df[attribute].unique():
-                subset_df = df[df[attribute] == attr_value]
                 results = pd.DataFrame()
+                subset_df = df[df[attribute] == attr_value]
                 
                 for col in df.columns:
                     try:
@@ -235,8 +235,6 @@ class Visualizer:
                     st.write(f"【{attr_value}】")
                     st.dataframe(results)
                     all_results[attr_value] = results
-                else:
-                    st.info(f"【{attr_value}】の複数回答の質問が見つかりませんでした。")
             
             # すべての結果を1つのExcelファイルに保存
             if all_results:
