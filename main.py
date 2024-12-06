@@ -153,6 +153,9 @@ def main():
         # Question grouping
         with st.expander("質問グループの設定"):
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                # 列名のマッピングを取得
+                column_names = st.session_state.config_manager.config.get('column_names', {})
+                
                 # 既存の質問グループの一覧表示
                 if question_groups := st.session_state.config_manager.config.get('question_groups', {}):
                     st.write("登録済み質問グループ一覧")
