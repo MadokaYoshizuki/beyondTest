@@ -162,15 +162,29 @@ class Visualizer:
             if multi_index_data:
                 # DataFrameの作成とピボット
                 results_df = pd.DataFrame(multi_index_data)
-                pivot_results = results_df.pivot_table(
-                    index=['質問', '回答'],
-                    columns='属性値',
-                    values='件数',
-                    fill_value=0
-                )
                 
-                st.write("回答件数（属性別）")
-                st.dataframe(pivot_results)
+                # 質問の一覧を取得（ユニーク）
+                questions = sorted(results_df['質問'].unique())
+                
+                # 各質問についてピボットテーブルを作成して表示
+                for question in questions:
+                    st.write(f"\n### 質問: {question}")
+                    
+                    # 現在の質問のデータのみを抽出
+                    question_data = results_df[results_df['質問'] == question]
+                    
+                    # ピボットテーブルの作成
+                    pivot_results = question_data.pivot_table(
+                        index='属性値',
+                        columns='回答',
+                        values='件数',
+                        fill_value=0
+                    )
+                    
+                    # 列を昇順にソート
+                    pivot_results = pivot_results.reindex(sorted(pivot_results.columns), axis=1)
+                    
+                    st.dataframe(pivot_results)
             else:
                 st.info("複数回答の質問が見つかりませんでした。")
 
