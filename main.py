@@ -156,21 +156,34 @@ def main():
                 # 列名のマッピングを取得
                 column_names = st.session_state.config_manager.config.get('column_names', {})
                 
-                # 既存の質問グループの一覧表示と削除機能
+                # 既存の質問グループの一覧表示
                 if question_groups := st.session_state.config_manager.config.get('question_groups', {}):
                     st.write("登録済み質問グループ一覧")
                     
-                    for group_name, questions in list(question_groups.items()):
-                        col1, col2 = st.columns([5, 1])
-                        with col1:
-                            st.write(f"📁 {group_name}")
-                            st.write(f"質問項目: {', '.join([column_names.get(q, q) for q in questions])}")
-                        with col2:
-                            if st.button("削除", key=f"delete_{group_name}"):
-                                del st.session_state.config_manager.config['question_groups'][group_name]
-                                st.session_state.config_manager.save_config()
-                                st.success(f"グループ '{group_name}' を削除しました")
-                                st.experimental_rerun()
+                    # テーブル形式でグループ一覧を表示
+                    group_data = []
+                    for group_name, questions in question_groups.items():
+                        group_data.append({
+                            "グループ名": group_name,
+                            "所属質問数": len(questions),
+                            "質問項目": ", ".join([column_names.get(q, q) for q in questions])
+                        })
+                    
+                    if group_data:
+                        group_df = pd.DataFrame(group_data)
+                        st.dataframe(
+                            group_df,
+                            hide_index=True,
+                            use_container_width=True
+                        )
+                        
+                        # 削除機能の追加
+                        delete_group = st.selectbox("削除するグループを選択:", [""] + list(question_groups.keys()))
+                        if delete_group and st.button("選択したグループを削除"):
+                            del st.session_state.config_manager.config['question_groups'][delete_group]
+                            st.session_state.config_manager.save_config()
+                            st.success(f"グループ '{delete_group}' を削除しました")
+                            st.experimental_rerun()
                 
                 # 新規グループの追加
                 st.write("新規グループの追加")
