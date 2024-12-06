@@ -1,0 +1,117 @@
+import streamlit as st
+import pandas as pd
+import json
+from utils.data_processor import DataProcessor
+from utils.config_manager import ConfigManager
+from utils.visualization import Visualizer
+from utils.pdf_generator import PDFGenerator
+
+st.set_page_config(layout="wide", page_title="意識調査データ分析ダッシュボード")
+
+def main():
+    st.title("意識調査データ分析ダッシュボード")
+
+    # Initialize session state
+    if 'data_processor' not in st.session_state:
+        st.session_state.data_processor = DataProcessor()
+    if 'config_manager' not in st.session_state:
+        st.session_state.config_manager = ConfigManager()
+    if 'visualizer' not in st.session_state:
+        st.session_state.visualizer = Visualizer()
+
+    # File upload section
+    st.header("1. データアップロード")
+    st.write("時期の古いものから順にしてください")
+    
+    uploaded_files = st.file_uploader("CSVファイルを選択（3年分）", 
+                                    type="csv", 
+                                    accept_multiple_files=True)
+
+    if uploaded_files:
+        dates = []
+        for i, file in enumerate(uploaded_files):
+            date = st.date_input(f"実施時期 {i+1}", key=f"date_{i}")
+            dates.append(date)
+
+        if st.button("データを読み込む"):
+            st.session_state.data_processor.load_data(uploaded_files, dates)
+            st.success("データを読み込みました")
+
+    # Data analysis section
+    if hasattr(st.session_state.data_processor, 'dfs'):
+        st.header("2. データ分析")
+        
+        # Display raw data and analysis
+        for i, df in enumerate(st.session_state.data_processor.dfs):
+            with st.expander(f"データセット {i+1} の分析"):
+                st.write("基本統計量:")
+                stats = st.session_state.data_processor.get_statistics(df)
+                st.dataframe(stats.style.apply(lambda x: ['background-color: pink' if v == x.min() else '' for v in x]))
+                
+                st.write("回答タイプ:")
+                answer_types = st.session_state.data_processor.get_answer_types(df)
+                st.write(answer_types)
+
+        # Configuration section
+        st.header("3. 設定")
+        
+        # Column mapping
+        with st.expander("列名の設定"):
+            config = st.session_state.config_manager.load_config()
+            new_column_names = {}
+            for col in st.session_state.data_processor.dfs[0].columns:
+                new_name = st.text_input(f"列 '{col}' の新しい名称:", 
+                                       value=config.get('column_names', {}).get(col, col))
+                new_column_names[col] = new_name
+            
+            if st.button("列名を保存"):
+                st.session_state.config_manager.save_column_mapping(new_column_names)
+                st.success("列名の設定を保存しました")
+
+        # Attribute selection
+        with st.expander("属性項目の設定"):
+            attributes = st.multiselect("属性として扱う列を選択:",
+                                      st.session_state.data_processor.dfs[0].columns)
+            if st.button("属性を保存"):
+                st.session_state.config_manager.save_attributes(attributes)
+                st.success("属性の設定を保存しました")
+
+        # Question grouping
+        with st.expander("質問グループの設定"):
+            group_name = st.text_input("グループ名:")
+            questions = st.multiselect("グループに含める質問:",
+                                     st.session_state.data_processor.dfs[0].columns)
+            if st.button("グループを保存"):
+                st.session_state.config_manager.save_question_group(group_name, questions)
+                st.success("質問グループを保存しました")
+
+        # Visualization section
+        st.header("4. 可視化")
+        
+        tab1, tab2 = st.tabs(["数値表", "ダッシュボード"])
+        
+        with tab1:
+            st.session_state.visualizer.display_numerical_tables(
+                st.session_state.data_processor.dfs,
+                st.session_state.config_manager
+            )
+            
+        with tab2:
+            st.session_state.visualizer.display_dashboard(
+                st.session_state.data_processor.dfs,
+                st.session_state.config_manager
+            )
+
+        # PDF Export
+        st.header("5. PDF出力")
+        if st.button("PDF出力"):
+            pdf_generator = PDFGenerator()
+            pdf_path = pdf_generator.generate_pdf(
+                st.session_state.data_processor.dfs,
+                st.session_state.config_manager,
+                st.session_state.visualizer
+            )
+            st.success(f"PDFを生成しました: {pdf_path}")
+
+if __name__ == "__main__":
+    main()
