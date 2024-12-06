@@ -23,16 +23,17 @@ def main():
     st.header("1. データアップロード")
     st.write("時期の古いものから順にしてください")
     
+    # 日付入力欄（3年分）
+    dates = []
+    for i in range(3):
+        date = st.date_input(f"{i+1}年目のデータの実施時期", key=f"date_{i}")
+        dates.append(date)
+    
     uploaded_files = st.file_uploader("CSVファイルを選択（3年分）", 
                                     type="csv", 
                                     accept_multiple_files=True)
 
     if uploaded_files:
-        dates = []
-        for i, file in enumerate(uploaded_files):
-            date = st.date_input(f"実施時期 {i+1}", key=f"date_{i}")
-            dates.append(date)
-
         if st.button("データを読み込む"):
             st.session_state.data_processor.load_data(uploaded_files, dates)
             st.success("データを読み込みました")
