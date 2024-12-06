@@ -4,10 +4,19 @@ import plotly.graph_objects as go
 import pandas as pd
 
 class Visualizer:
-    def _save_to_excel(self, df, filename):
+    def _save_to_excel(self, data_dict, filename):
         # 一時ファイルとしてExcelを保存
         excel_path = f"{filename}.xlsx"
-        df.to_excel(excel_path, index=True, engine='openpyxl')
+        
+        # ExcelWriterを使用して複数シートを作成
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            # データが辞書形式の場合（複数シート）
+            if isinstance(data_dict, dict):
+                for sheet_name, df in data_dict.items():
+                    df.to_excel(writer, sheet_name=sheet_name, index=True)
+            # 単一のDataFrameの場合
+            else:
+                data_dict.to_excel(writer, index=True)
         
         # ダウンロードボタンを表示
         with open(excel_path, 'rb') as f:
@@ -125,18 +134,25 @@ class Visualizer:
             results_mean = results_mean[column_order]
             results_score = results_score[column_order]
             
-            # 結果の表示
-            st.write("平均値")
-            st.dataframe(results_mean)
-            self._save_to_excel(results_mean, f"average_values_{attribute}")
-            
-            st.write("100点換算")
-            st.dataframe(results_score)
-            self._save_to_excel(results_score, f"score_values_{attribute}")
-            return
-
-        st.write("平均値と100点換算")
-        st.dataframe(results)
+            # 結果の表示と保存
+            if attribute != "全体":
+                # 両方のデータフレームを1つのExcelファイルに保存
+                self._save_to_excel(
+                    {
+                        "平均値": results_mean,
+                        "100点換算": results_score
+                    },
+                    f"numeric_analysis_{attribute}"
+                )
+                
+                st.write("平均値")
+                st.dataframe(results_mean)
+                st.write("100点換算")
+                st.dataframe(results_score)
+            else:
+                st.write("平均値と100点換算")
+                st.dataframe(results)
+                self._save_to_excel(results, "numeric_analysis_all")
 
     def _display_multiple_choice_analysis(self, df, attribute, config_manager):
         # 列名のマッピングを取得
@@ -165,9 +181,10 @@ class Visualizer:
             else:
                 st.info("複数回答の質問が見つかりませんでした。")
         else:
+            # 属性値ごとの結果を辞書に格納
+            all_results = {}
+            
             for attr_value in df[attribute].unique():
-                st.write(f"【{attr_value}】")
-                
                 subset_df = df[df[attribute] == attr_value]
                 results = pd.DataFrame()
                 
@@ -185,9 +202,15 @@ class Visualizer:
                         continue
                 
                 if not results.empty:
+                    st.write(f"【{attr_value}】")
                     st.dataframe(results)
+                    all_results[attr_value] = results
                 else:
-                    st.info("複数回答の質問が見つかりませんでした。")
+                    st.info(f"【{attr_value}】の複数回答の質問が見つかりませんでした。")
+            
+            # すべての結果を1つのExcelファイルに保存
+            if all_results:
+                self._save_to_excel(all_results, f"multiple_choice_analysis_{attribute}")
 
     def display_dashboard(self, dfs, config_manager):
         if not dfs:
