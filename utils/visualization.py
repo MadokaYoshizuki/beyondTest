@@ -120,12 +120,12 @@ class Visualizer:
                     if numeric_questions:
                         group_mean = df[numeric_questions].mean().mean()
                         max_val = df[numeric_questions].max().max()
-                        group_results.loc[group_name, "グループ平均"] = '{:g}'.format(group_mean) if pd.notnull(group_mean) else '-'
+                        group_results.loc[group_name, "平均"] = '{:g}'.format(group_mean) if pd.notnull(group_mean) else '-'
                         if pd.notnull(group_mean) and pd.notnull(max_val) and max_val != 0:
                             score = (group_mean / max_val) * 100
-                            group_results.loc[group_name, "グループ100点換算"] = '{:g}'.format(score)
+                            group_results.loc[group_name, "100点換算"] = '{:g}'.format(score)
                         else:
-                            group_results.loc[group_name, "グループ100点換算"] = '-'
+                            group_results.loc[group_name, "100点換算"] = '-'
 
                 if not group_results.empty:
                     st.write("グループごとの分析結果")
