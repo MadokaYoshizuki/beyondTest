@@ -73,12 +73,6 @@ class Visualizer:
         
         df = dfs[selected_year_idx]
         
-        # 質問グループ一覧の表示
-        st.write("登録済み質問グループ:")
-        for group_name, questions in question_groups.items():
-            with st.expander(f"📁 {group_name}"):
-                st.write(", ".join([column_names.get(q, q) for q in questions]))
-        
         for question_type in ["数値回答", "数値回答（複数回答）"]:
             st.subheader(f"{question_type}の分析結果")
             
@@ -132,13 +126,13 @@ class Visualizer:
                     st.dataframe(group_results)
 
             if not results.empty:
-                # 質問ごとの結果とグループごとの結果を並べて表示
                 st.write("質問ごとの分析結果")
                 st.dataframe(results)
                 
-                st.write("グループごとの分析結果")
-                st.dataframe(group_results)
-                
+                if not group_results.empty:
+                    st.write("質問グループごとの分析結果")
+                    st.dataframe(group_results)
+                    
                 # Excelエクスポートに両方のデータを含める
                 excel_data = {
                     "質問ごとの分析": results,

@@ -153,9 +153,34 @@ def main():
         # Question grouping
         with st.expander("質問グループの設定"):
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                # 既存の質問グループの一覧表示
+                if question_groups := st.session_state.config_manager.config.get('question_groups', {}):
+                    st.write("登録済み質問グループ一覧")
+                    
+                    # 表形式でグループ一覧を表示
+                    group_data = []
+                    for group_name, questions in question_groups.items():
+                        group_data.append({
+                            "グループ名": group_name,
+                            "所属質問数": len(questions),
+                            "質問項目": ", ".join([column_names.get(q, q) for q in questions])
+                        })
+                    
+                    if group_data:
+                        st.dataframe(
+                            pd.DataFrame(group_data),
+                            hide_index=True,
+                            use_container_width=True
+                        )
+                
+                # 新規グループの追加
+                st.write("新規グループの追加")
                 group_name = st.text_input("グループ名:")
-                questions = st.multiselect("グループに含める質問:",
-                                      st.session_state.data_processor.dfs[0].columns)
+                questions = st.multiselect(
+                    "グループに含める質問:",
+                    st.session_state.data_processor.dfs[0].columns,
+                    format_func=lambda x: column_names.get(x, x)
+                )
                 if st.button("グループを保存"):
                     st.session_state.config_manager.save_question_group(group_name, questions)
                     st.success("質問グループを保存しました")
