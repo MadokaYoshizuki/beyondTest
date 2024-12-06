@@ -23,21 +23,44 @@ def main():
     st.header("1. データアップロード")
     st.write("時期の古いものから順にしてください")
     
-    # 実施時期入力欄（3回分）
+    # 3列に分割してデータアップロード
     cols = st.columns(3)
     dates = []
-    for i in range(3):
-        date = cols[i].text_input(f"{i+1}回目のデータの実施時期", key=f"date_{i}")
-        dates.append(date)
+    files = []
     
-    uploaded_files = st.file_uploader("CSVファイルを選択（3年分）", 
-                                    type="csv", 
-                                    accept_multiple_files=True)
+    for i in range(3):
+        with cols[i]:
+            st.subheader(f"{i+1}回目のデータ")
+            date = st.text_input(f"実施時期", key=f"date_{i}")
+            dates.append(date)
+            
+            uploaded_file = st.file_uploader(
+                "CSVファイルを選択", 
+                type="csv",
+                key=f"file_{i}"
+            )
+            files.append(uploaded_file)
+            
+            if date and uploaded_file:
+                st.success(f"✓ {date}のデータ")
 
-    if uploaded_files:
+    if any(files):  # いずれかのファイルがアップロードされている場合
         if st.button("データを読み込む"):
-            st.session_state.data_processor.load_data(uploaded_files, dates)
-            st.success("データを読み込みました")
+            valid_files = []
+            valid_dates = []
+            
+            # 有効なファイルと日付のペアのみを処理
+            for i, (file, date) in enumerate(zip(files, dates)):
+                if file and date:
+                    valid_files.append(file)
+                    valid_dates.append(date)
+                    st.write(f"{i+1}回目: {date}のデータを読み込みます")
+            
+            if valid_files:
+                st.session_state.data_processor.load_data(valid_files, valid_dates)
+                st.success(f"{len(valid_files)}件のデータを読み込みました")
+            else:
+                st.warning("有効なデータがありません。日付とファイルの両方を指定してください。")
 
     # Data analysis section
     if hasattr(st.session_state.data_processor, 'dfs'):
@@ -61,14 +84,18 @@ def main():
         with st.expander("列名の設定"):
             config = st.session_state.config_manager.load_config()
             new_column_names = {}
-            for col in st.session_state.data_processor.dfs[0].columns:
-                new_name = st.text_input(f"列 '{col}' の新しい名称:", 
-                                       value=config.get('column_names', {}).get(col, col))
-                new_column_names[col] = new_name
             
-            if st.button("列名を保存"):
-                st.session_state.config_manager.save_column_mapping(new_column_names)
-                st.success("列名の設定を保存しました")
+            if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                for col in st.session_state.data_processor.dfs[0].columns:
+                    new_name = st.text_input(f"列 '{col}' の新しい名称:", 
+                                           value=config.get('column_names', {}).get(col, col))
+                    new_column_names[col] = new_name
+                
+                if st.button("列名を保存"):
+                    st.session_state.config_manager.save_column_mapping(new_column_names)
+                    st.success("列名の設定を保存しました")
+            else:
+                st.info("データを読み込むと、列名の設定が可能になります。")
 
         # Attribute selection
         with st.expander("属性項目の設定"):
