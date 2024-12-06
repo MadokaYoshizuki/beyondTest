@@ -27,9 +27,8 @@ class Visualizer:
                 self._display_multiple_choice_analysis(df, selected_attribute, config_manager)
 
     def _display_numeric_analysis(self, df, attribute, config_manager):
-        results = pd.DataFrame()
-        
         if attribute == "全体":
+            results = pd.DataFrame()
             for col in df.columns:
                 if pd.api.types.is_numeric_dtype(df[col]):
                     mean_val = df[col].mean()
@@ -37,53 +36,128 @@ class Visualizer:
                     results.loc[col, "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
                     results.loc[col, "100点換算"] = '{:g}'.format((mean_val / max_val) * 100) if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0 else '-'
         else:
-            for value in df[attribute].unique():
-                subset = df[df[attribute] == value]
-                for col in df.columns:
-                    if pd.api.types.is_numeric_dtype(df[col]):
-                        mean_val = subset[col].mean()
-                        max_val = subset[col].max()
-                        results.loc[f"{col} ({value})", "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
-                        results.loc[f"{col} ({value})", "100点換算"] = '{:g}'.format((mean_val / max_val) * 100) if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0 else '-'
+            # 数値列を抽出
+            numeric_cols = df.select_dtypes(include=['number']).columns
+            if len(numeric_cols) == 0:
+                st.info("数値データが見つかりませんでした。")
+                return
+                
+            # 属性値ごとの結果を格納するための辞書
+            results_dict = {
+                '平均': {},
+                '100点換算': {}
+            }
+            
+            # 各数値列について処理
+            for col in numeric_cols:
+                results_dict['平均'][col] = {}
+                results_dict['100点換算'][col] = {}
+                max_val = df[col].max()  # 全体の最大値を基準とする
+                
+                for value in df[attribute].unique():
+                    subset = df[df[attribute] == value]
+                    mean_val = subset[col].mean()
+                    
+                    # 平均値の格納
+                    results_dict['平均'][col][value] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
+                    
+                    # 100点換算値の格納
+                    if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
+                        score = (mean_val / max_val) * 100
+                        results_dict['100点換算'][col][value] = '{:g}'.format(score)
+                    else:
+                        results_dict['100点換算'][col][value] = '-'
+            
+            # DataFrameに変換
+            results_mean = pd.DataFrame(results_dict['平均']).T
+            results_score = pd.DataFrame(results_dict['100点換算']).T
+            
+            # 結果の表示
+            st.write("平均値")
+            st.dataframe(results_mean)
+            st.write("100点換算")
+            st.dataframe(results_score)
+            return
 
         st.write("平均値と100点換算")
         st.dataframe(results)
 
     def _display_multiple_choice_analysis(self, df, attribute, config_manager):
-        results = pd.DataFrame()
-        
-        for col in df.columns:
-            try:
-                # 数値データと文字列データを適切に処理
-                if pd.api.types.is_numeric_dtype(df[col]):
-                    continue  # 数値データはスキップ
-                
-                # 文字列として処理
-                values = df[col].fillna('').astype(str)
-                # カンマを含む値のみを処理（複数回答）
-                if not values.str.contains(',').any():
+        if attribute == "全体":
+            results = pd.DataFrame()
+            
+            for col in df.columns:
+                try:
+                    # 数値データと文字列データを適切に処理
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        continue  # 数値データはスキップ
+                    
+                    # 文字列として処理
+                    values = df[col].fillna('').astype(str)
+                    # カンマを含む値のみを処理（複数回答）
+                    if not values.str.contains(',').any():
+                        continue
+                        
+                    values = values.str.split(',').explode()
+                    counts = values.value_counts().sort_index()  # 昇順でソート
+                    results[col] = counts
+                except Exception as e:
+                    st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
                     continue
                     
-                values = values.str.split(',').explode()
-                
-                if attribute == "全体":
-                    counts = values.value_counts()
-                    results[col] = counts
-                else:
+            if not results.empty:
+                st.write("回答件数")
+                st.dataframe(results)
+            else:
+                st.info("複数回答の質問が見つかりませんでした。")
+        else:
+            # マルチインデックスを使用した結果格納用のリスト
+            multi_index_data = []
+            
+            for col in df.columns:
+                try:
+                    # 数値データと文字列データを適切に処理
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        continue  # 数値データはスキップ
+                    
+                    # 文字列として処理
+                    values = df[col].fillna('').astype(str)
+                    # カンマを含む値のみを処理（複数回答）
+                    if not values.str.contains(',').any():
+                        continue
+                    
+                    # 属性値ごとに集計
                     for value in df[attribute].unique():
                         subset = df[df[attribute] == value]
                         subset_values = subset[col].fillna('').astype(str).str.split(',').explode()
-                        counts = subset_values.value_counts()
-                        results[f"{col} ({value})"] = counts
-            except Exception as e:
-                st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
-                continue
-
-        if not results.empty:
-            st.write("回答件数")
-            st.dataframe(results)
-        else:
-            st.info("複数回答の質問が見つかりませんでした。")
+                        counts = subset_values.value_counts().sort_index()  # 昇順でソート
+                        
+                        # 各回答オプションについて結果を格納
+                        for answer, count in counts.items():
+                            multi_index_data.append({
+                                '質問': col,
+                                '属性値': value,
+                                '回答': answer,
+                                '件数': count
+                            })
+                except Exception as e:
+                    st.warning(f"列 '{col}' の処理中にエラーが発生しました: {str(e)}")
+                    continue
+            
+            if multi_index_data:
+                # DataFrameの作成とピボット
+                results_df = pd.DataFrame(multi_index_data)
+                pivot_results = results_df.pivot_table(
+                    index=['質問', '回答'],
+                    columns='属性値',
+                    values='件数',
+                    fill_value=0
+                )
+                
+                st.write("回答件数（属性別）")
+                st.dataframe(pivot_results)
+            else:
+                st.info("複数回答の質問が見つかりませんでした。")
 
     def display_dashboard(self, dfs, config_manager):
         if not dfs:
