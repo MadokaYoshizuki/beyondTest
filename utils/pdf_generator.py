@@ -18,8 +18,12 @@ from datetime import datetime
 class PDFGenerator:
     def __init__(self):
         # 日本語フォントの登録
-        font_path = "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"
-        pdfmetrics.registerFont(TTFont('NotoSans', font_path))
+        try:
+            font_path = "/nix/store/noto-fonts-cjk/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc"
+            pdfmetrics.registerFont(TTFont('NotoSans', font_path))
+        except:
+            # フォントが見つからない場合はデフォルトフォントを使用
+            st.warning("日本語フォントの読み込みに失敗しました。デフォルトフォントを使用します。")
         
     def _create_header_footer(self, canvas, doc):
         """ヘッダーとフッターを描画"""
