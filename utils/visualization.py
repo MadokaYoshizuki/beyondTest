@@ -7,21 +7,24 @@ class Visualizer:
     def _save_to_excel(self, data_dict, filename):
         excel_path = f"{filename}.xlsx"
         
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        with pd.ExcelWriter(excel_path, engine='openpyxl', mode='w') as writer:
             if isinstance(data_dict, dict):
                 for sheet_name, df in data_dict.items():
-                    # インデックスと列名のみの単純な表として出力
+                    # 書式設定を完全に省いてデータのみを出力
                     df.to_excel(
                         writer,
                         sheet_name=sheet_name,
                         index=True,
-                        header=True
+                        header=True,
+                        engine='openpyxl'
                     )
             else:
+                # 単一のDataFrameの場合も同様
                 data_dict.to_excel(
                     writer,
                     index=True,
-                    header=True
+                    header=True,
+                    engine='openpyxl'
                 )
         
         # ダウンロードボタンを表示
@@ -81,13 +84,30 @@ class Visualizer:
         
         if attribute == "全体":
             results = pd.DataFrame()
+            
+            # 数値列の処理
             for col in df.columns:
                 if pd.api.types.is_numeric_dtype(df[col]):
                     mean_val = df[col].mean()
                     max_val = df[col].max()
                     display_name = column_names.get(col, col)
+                    
+                    # 平均値の計算
                     results.loc[display_name, "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
-                    results.loc[display_name, "100点換算"] = '{:g}'.format((mean_val / max_val) * 100) if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0 else '-'
+                    
+                    # 100点換算の計算
+                    if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
+                        score = (mean_val / max_val) * 100
+                        results.loc[display_name, "100点換算"] = '{:g}'.format(score)
+                    else:
+                        results.loc[display_name, "100点換算"] = '-'
+                        
+            if not results.empty:
+                st.write("平均値と100点換算")
+                st.dataframe(results)
+                self._save_to_excel(results, "numeric_analysis_all")
+            else:
+                st.info("数値データが見つかりませんでした。")
         else:
             # 数値列を抽出
             numeric_cols = df.select_dtypes(include=['number']).columns
