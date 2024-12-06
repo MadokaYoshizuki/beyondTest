@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import streamlit as st
 
 class DataProcessor:
     def __init__(self):
@@ -12,21 +13,37 @@ class DataProcessor:
         first_df = None
         
         for i, file in enumerate(files):
-            df = pd.read_csv(file, encoding='utf-8-sig')
-            
-            # 最初のファイルの構造を保存
-            if i == 0:
-                first_df = df
-            else:
-                # 構造の比較
-                for col in df.columns:
-                    if col in first_df.columns:
-                        current_type = self.get_answer_types(pd.DataFrame({col: df[col]}))[col]
-                        first_type = self.get_answer_types(pd.DataFrame({col: first_df[col]}))[col]
-                        if current_type != first_type:
-                            st.warning(f"警告: {col}の回答タイプが一致しません。{i+1}回目: {current_type}, 1回目: {first_type}")
-            
-            self.dfs.append(df)
+            try:
+                df = pd.read_csv(file, encoding='utf-8-sig')
+                
+                # 最初のファイルの構造を保存
+                if i == 0:
+                    first_df = df
+                    first_columns = set(df.columns)
+                else:
+                    # 列の存在チェック
+                    current_columns = set(df.columns)
+                    missing_columns = first_columns - current_columns
+                    extra_columns = current_columns - first_columns
+                    
+                    if missing_columns:
+                        st.warning(f"警告: {i+1}回目のデータには以下の列が欠けています: {', '.join(missing_columns)}")
+                    if extra_columns:
+                        st.warning(f"警告: {i+1}回目のデータには追加の列があります: {', '.join(extra_columns)}")
+                    
+                    # データ型の比較
+                    for col in df.columns:
+                        if col in first_df.columns:
+                            current_type = self.get_answer_types(pd.DataFrame({col: df[col]}))[col]
+                            first_type = self.get_answer_types(pd.DataFrame({col: first_df[col]}))[col]
+                            if current_type != first_type:
+                                st.warning(f"警告: {col}の回答タイプが一致しません。{i+1}回目: {current_type}, 1回目: {first_type}")
+                
+                self.dfs.append(df)
+                
+            except Exception as e:
+                st.error(f"{i+1}回目のデータ読み込み中にエラーが発生しました: {str(e)}")
+                continue
 
     def get_statistics(self, df):
         numeric_df = df.select_dtypes(include=['number'])
@@ -42,30 +59,37 @@ class DataProcessor:
             if len(values) == 0:
                 answer_types[column] = "データなし"
                 continue
-                
-            # 数値判定の優先順位を上げる
+            
+            # 数値判定（優先順位最高）
             try:
-                # pd.to_numericを使用して数値変換を試みる
                 numeric_values = pd.to_numeric(values, errors='raise')
-                if numeric_values.dtype in ['int64', 'float64']:
-                    if all(numeric_values.apply(lambda x: float(x).is_integer())):
-                        answer_types[column] = "数値回答"
-                    else:
-                        answer_types[column] = "数値回答（小数）"
-                    continue
+                
+                # 整数/小数の判定を明確に
+                if numeric_values.dtype == 'int64' or all(numeric_values.apply(lambda x: float(x).is_integer())):
+                    answer_types[column] = "数値回答（整数）"
+                else:
+                    answer_types[column] = "数値回答（小数）"
+                continue
             except (ValueError, TypeError):
+                # 数値変換に失敗した場合、他の判定に進む
                 pass
             
             # 複数回答（数値）のチェック
             try:
-                if all(values.astype(str).str.match(r'^\d+(?:,\d+)*$')):
+                # カンマで区切られた数値のパターン
+                if all(values.astype(str).str.match(r'^\s*\d+(?:\s*,\s*\d+)*\s*$')):
                     answer_types[column] = "数値回答（複数回答）"
                     continue
             except (ValueError, TypeError, AttributeError):
                 pass
             
-            # テキスト回答として処理
-            answer_types[column] = "テキスト回答"
+            # 複数回答（テキスト）のチェック
+            if values.astype(str).str.contains(',').any():
+                answer_types[column] = "テキスト回答（複数回答）"
+                continue
+            
+            # 単一テキスト回答
+            answer_types[column] = "テキスト回答（単一）"
         
         return answer_types
 
