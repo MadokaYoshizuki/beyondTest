@@ -13,6 +13,9 @@ class DataProcessor:
         first_df = None
         structure_mismatch = False
         
+        # 最初にデータ読み込みメッセージを表示
+        st.success(f"{len(files)}件のデータを読み込みました")
+        
         for i, file in enumerate(files):
             try:
                 df = pd.read_csv(file, encoding='utf-8-sig')
@@ -42,7 +45,7 @@ class DataProcessor:
                                 st.error(f"エラー: {col}の回答タイプが一致しません。{i+1}回目: {current_type}, 1回目: {first_type}")
                                 structure_mismatch = True
                                 break
-                
+            
                 if not structure_mismatch:
                     self.dfs.append(df)
                 
@@ -50,7 +53,7 @@ class DataProcessor:
                 st.error(f"{i+1}回目のデータ読み込み中にエラーが発生しました: {str(e)}")
                 structure_mismatch = True
                 break
-        
+    
         # 構造の不一致がある場合は全てのデータをクリア
         if structure_mismatch:
             self.dfs = []

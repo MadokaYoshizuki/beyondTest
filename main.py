@@ -78,7 +78,6 @@ def main():
             
             if valid_files:
                 st.session_state.data_processor.load_data(valid_files, valid_dates)
-                st.success(f"{len(valid_files)}件のデータを読み込みました")
             else:
                 st.warning("有効なデータがありません。日付とファイルの両方を指定してください。")
 
