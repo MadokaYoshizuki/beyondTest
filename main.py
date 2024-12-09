@@ -18,92 +18,109 @@ def main():
         st.session_state.config_manager = ConfigManager()
     if 'visualizer' not in st.session_state:
         st.session_state.visualizer = Visualizer()
+    if 'current_menu' not in st.session_state:
+        st.session_state.current_menu = "1.データアップロード"
 
-    # File upload section
-    st.header("1. データアップロード")
-    st.write("時期の古いものから順にしてください")
-    
-    # セッション状態の初期化
-    if 'upload_status' not in st.session_state:
-        st.session_state.upload_status = [False] * 3
-    
-    # 3列に分割してデータアップロード
-    cols = st.columns(3)
-    dates = []
-    files = []
-    
-    for i in range(3):
-        with cols[i]:
-            st.subheader(f"{i+1}回目のデータ")
-            
-            # 実施時期の入力
-            date = st.text_input(
-                f"実施時期",
-                key=f"date_{i}",
-                help="例: 2023年度"
-            )
-            dates.append(date)
-            
-            # ファイルのアップロード
-            uploaded_file = st.file_uploader(
-                "CSVファイルを選択", 
-                type="csv",
-                key=f"file_{i}",
-                help="CSVファイルをアップロードしてください"
-            )
-            files.append(uploaded_file)
-            
-            # アップロード状態の更新と表示
-            st.session_state.upload_status[i] = bool(date and uploaded_file)
-            
-            if st.session_state.upload_status[i]:
-                st.success(f"✓ {date}のデータがアップロードされました")
-            else:
-                if date and not uploaded_file:
-                    st.warning("CSVファイルを選択してください")
-                elif uploaded_file and not date:
-                    st.warning("実施時期を入力してください")
+    # メインメニューの追加
+    menu_options = [
+        "1.データアップロード",
+        "2.データ分析",
+        "3.設定",
+        "4.集計",
+        "5.可視化",
+        "6.PDF出力"
+    ]
 
-    if any(files):  # いずれかのファイルがアップロードされている場合
-        if st.button("データを読み込む"):
-            valid_files = []
-            valid_dates = []
-            
-            # 有効なファイルと日付のペアのみを処理
-            for i, (file, date) in enumerate(zip(files, dates)):
-                if file and date:
-                    valid_files.append(file)
-                    valid_dates.append(date)
-                    st.write(f"{i+1}回目: {date}のデータを読み込みます")
-            
-            if valid_files:
-                st.session_state.data_processor.load_data(valid_files, valid_dates)
-            else:
-                st.warning("有効なデータがありません。日付とファイルの両方を指定してください。")
+    st.session_state.current_menu = st.sidebar.radio("メニュー", menu_options)
 
-    # Data analysis section
-    if hasattr(st.session_state.data_processor, 'dfs'):
+    # 各セクションの条件分岐
+    if st.session_state.current_menu == "1.データアップロード":
+        st.header("1. データアップロード")
+        st.write("時期の古いものから順にしてください")
+        
+        # セッション状態の初期化
+        if 'upload_status' not in st.session_state:
+            st.session_state.upload_status = [False] * 3
+        
+        # 3列に分割してデータアップロード
+        cols = st.columns(3)
+        dates = []
+        files = []
+        
+        for i in range(3):
+            with cols[i]:
+                st.subheader(f"{i+1}回目のデータ")
+                
+                # 実施時期の入力
+                date = st.text_input(
+                    f"実施時期",
+                    key=f"date_{i}",
+                    help="例: 2023年度"
+                )
+                dates.append(date)
+                
+                # ファイルのアップロード
+                uploaded_file = st.file_uploader(
+                    "CSVファイルを選択", 
+                    type="csv",
+                    key=f"file_{i}",
+                    help="CSVファイルをアップロードしてください"
+                )
+                files.append(uploaded_file)
+                
+                # アップロード状態の更新と表示
+                st.session_state.upload_status[i] = bool(date and uploaded_file)
+                
+                if st.session_state.upload_status[i]:
+                    st.success(f"✓ {date}のデータがアップロードされました")
+                else:
+                    if date and not uploaded_file:
+                        st.warning("CSVファイルを選択してください")
+                    elif uploaded_file and not date:
+                        st.warning("実施時期を入力してください")
+
+        if any(files):  # いずれかのファイルがアップロードされている場合
+            if st.button("データを読み込む"):
+                valid_files = []
+                valid_dates = []
+                
+                # 有効なファイルと日付のペアのみを処理
+                for i, (file, date) in enumerate(zip(files, dates)):
+                    if file and date:
+                        valid_files.append(file)
+                        valid_dates.append(date)
+                        st.write(f"{i+1}回目: {date}のデータを読み込みます")
+                
+                if valid_files:
+                    st.session_state.data_processor.load_data(valid_files, valid_dates)
+                else:
+                    st.warning("有効なデータがありません。日付とファイルの両方を指定してください。")
+
+    elif st.session_state.current_menu == "2.データ分析":
         st.header("2. データ分析")
         
         # Display raw data and analysis
-        for i, df in enumerate(st.session_state.data_processor.dfs):
-            with st.expander(f"データセット {i+1} ({st.session_state.data_processor.dates[i]}) の分析"):
-                st.write("基本統計量:")
-                stats = st.session_state.data_processor.get_statistics(df)
-                
-                def highlight_missing(x):
-                    if x.name == 'count':
-                        return ['background-color: pink' if pd.isna(v) else '' for v in x]
-                    return ['' for _ in x]
+        if hasattr(st.session_state.data_processor, 'dfs'):
+            for i, df in enumerate(st.session_state.data_processor.dfs):
+                with st.expander(f"データセット {i+1} ({st.session_state.data_processor.dates[i]}) の分析"):
+                    st.write("基本統計量:")
+                    stats = st.session_state.data_processor.get_statistics(df)
                     
-                formatted_stats = stats.apply(lambda x: ['{:g}'.format(v) if isinstance(v, float) else str(v) for v in x])
-                st.dataframe(formatted_stats.style.apply(highlight_missing, axis=1))
-                
-                st.write("回答タイプ:")
-                answer_types = st.session_state.data_processor.get_answer_types(df)
-                st.write(answer_types)
+                    def highlight_missing(x):
+                        if x.name == 'count':
+                            return ['background-color: pink' if pd.isna(v) else '' for v in x]
+                        return ['' for _ in x]
+                        
+                    formatted_stats = stats.apply(lambda x: ['{:g}'.format(v) if isinstance(v, float) else str(v) for v in x])
+                    st.dataframe(formatted_stats.style.apply(highlight_missing, axis=1))
+                    
+                    st.write("回答タイプ:")
+                    answer_types = st.session_state.data_processor.get_answer_types(df)
+                    st.write(answer_types)
+        else:
+            st.info("データを読み込んでください。")
 
-        # Configuration section
+    elif st.session_state.current_menu == "3.設定":
         st.header("3. 設定")
         
         # Column mapping with grid layout
@@ -240,7 +257,7 @@ def main():
                 # 新規値グループの追加
                 st.write("新規値グループの追加")
                 
-                # 数値列の選択（複数選択可能に変更）
+                # 数値列の選択（複数選択可能）
                 numeric_columns = [col for col in st.session_state.data_processor.dfs[0].columns 
                                 if pd.api.types.is_numeric_dtype(st.session_state.data_processor.dfs[0][col])]
                 selected_columns = st.multiselect(
@@ -311,25 +328,22 @@ def main():
             else:
                 st.info("データを読み込むと、値グループ化の設定が可能になります。")
 
-        # Visualization section
-        st.header("4. 可視化")
-        
-        tab1, tab2 = st.tabs(["数値表", "ダッシュボード"])
-        
-        with tab1:
-            st.session_state.visualizer.display_numerical_tables(
-                st.session_state.data_processor.dfs,
-                st.session_state.config_manager
-            )
-            
-        with tab2:
-            st.session_state.visualizer.display_dashboard(
-                st.session_state.data_processor.dfs,
-                st.session_state.config_manager
-            )
+    elif st.session_state.current_menu == "4.集計":
+        st.header("4. 集計")
+        st.session_state.visualizer.display_numerical_tables(
+            st.session_state.data_processor.dfs,
+            st.session_state.config_manager
+        )
 
-        # PDF Export
-        st.header("5. PDF出力")
+    elif st.session_state.current_menu == "5.可視化":
+        st.header("5. 可視化")
+        st.session_state.visualizer.display_dashboard(
+            st.session_state.data_processor.dfs,
+            st.session_state.config_manager
+        )
+
+    elif st.session_state.current_menu == "6.PDF出力":
+        st.header("6. PDF出力")
         if st.button("PDF出力"):
             pdf_generator = PDFGenerator()
             pdf_path = pdf_generator.generate_pdf(
