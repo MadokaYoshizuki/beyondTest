@@ -458,40 +458,38 @@ class Visualizer:
                 return
             
             # 1. 質問ごとの分析
-            results_dict = {
-                '平均': {},
-                '100点換算': {}
-            }
+            results = {'平均': {}, '100点換算': {}}
             
             for col in numeric_cols:
-                results_dict['平均'][col] = {}
-                results_dict['100点換算'][col] = {}
+                display_name = column_names.get(col, col)
                 max_val = df[col].max()
                 
                 # 全体の集計
+                results['平均'][display_name] = {}
+                results['100点換算'][display_name] = {}
+                
                 total_mean = df[col].mean()
-                results_dict['平均'][col]['全体'] = '{:g}'.format(total_mean) if pd.notnull(total_mean) else '-'
+                results['平均'][display_name]['全体'] = '{:g}'.format(total_mean) if pd.notnull(total_mean) else '-'
                 if pd.notnull(total_mean) and pd.notnull(max_val) and max_val != 0:
                     total_score = (total_mean / max_val) * 100
-                    results_dict['100点換算'][col]['全体'] = '{:g}'.format(total_score)
+                    results['100点換算'][display_name]['全体'] = '{:g}'.format(total_score)
                 else:
-                    results_dict['100点換算'][col]['全体'] = '-'
+                    results['100点換算'][display_name]['全体'] = '-'
                 
                 # 属性値ごとの集計
                 for value in df[attribute].unique():
                     subset = df[df[attribute] == value]
                     mean_val = subset[col].mean()
                     
-                    results_dict['平均'][col][value] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
-                    
+                    results['平均'][display_name][value] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
                     if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
                         score = (mean_val / max_val) * 100
-                        results_dict['100点換算'][col][value] = '{:g}'.format(score)
+                        results['100点換算'][display_name][value] = '{:g}'.format(score)
                     else:
-                        results_dict['100点換算'][col][value] = '-'
+                        results['100点換算'][display_name][value] = '-'
             
-            results_mean = pd.DataFrame(results_dict['平均']).T
-            results_score = pd.DataFrame(results_dict['100点換算']).T
+            results_mean = pd.DataFrame(results['平均']).T
+            results_score = pd.DataFrame(results['100点換算']).T
             
             column_order = ['全体'] + [col for col in results_mean.columns if col != '全体']
             results_mean = results_mean[column_order]
@@ -512,30 +510,51 @@ class Visualizer:
                     numeric_questions = [q for q in questions if q in df.columns and pd.api.types.is_numeric_dtype(df[q])]
                     if numeric_questions:
                         # 全体の集計
-                        group_mean = df[numeric_questions].mean().mean()
-                        max_val = df[numeric_questions].max().max()
+                        group_means = df[numeric_questions].mean()
+                        group_mean = group_means.mean()
+                        max_vals = df[numeric_questions].max()
                         
                         group_results['平均'][group_name] = {}
                         group_results['100点換算'][group_name] = {}
                         
+                        # 全体の結果を保存
                         group_results['平均'][group_name]['全体'] = '{:g}'.format(group_mean) if pd.notnull(group_mean) else '-'
-                        if pd.notnull(group_mean) and pd.notnull(max_val) and max_val != 0:
-                            score = (group_mean / max_val) * 100
-                            group_results['100点換算'][group_name]['全体'] = '{:g}'.format(score)
+                        
+                        # 各質問の最大値を使用して100点換算
+                        scores = []
+                        for q, mean_val in group_means.items():
+                            max_val = max_vals[q]
+                            if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
+                                score = (mean_val / max_val) * 100
+                                scores.append(score)
+                        
+                        if scores:
+                            avg_score = sum(scores) / len(scores)
+                            group_results['100点換算'][group_name]['全体'] = '{:g}'.format(avg_score)
                         else:
                             group_results['100点換算'][group_name]['全体'] = '-'
                         
                         # 属性値ごとの集計
                         for value in df[attribute].unique():
                             subset = df[df[attribute] == value]
-                            subset_mean = subset[numeric_questions].mean().mean()
+                            subset_means = subset[numeric_questions].mean()
+                            subset_mean = subset_means.mean()
                             
                             group_results['平均'][group_name][value] = '{:g}'.format(subset_mean) if pd.notnull(subset_mean) else '-'
-                            if pd.notnull(subset_mean) and pd.notnull(max_val) and max_val != 0:
-                                score = (subset_mean / max_val) * 100
-                                group_results['100点換算'][group_name][value] = '{:g}'.format(score)
+                            
+                            # 属性値ごとの100点換算
+                            subset_scores = []
+                            for q, mean_val in subset_means.items():
+                                max_val = max_vals[q]
+                                if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
+                                    score = (mean_val / max_val) * 100
+                                    subset_scores.append(score)
+                            
+                            if subset_scores:
+                                avg_score = sum(subset_scores) / len(subset_scores)
+                                group_results['100点換算'][group_name][value] = '{:g}'.format(avg_score)
                             else:
-                                group_results['100点換算'][group_name]['全体'] = '-'
+                                group_results['100点換算'][group_name][value] = '-'
                 
                 group_mean_df = pd.DataFrame(group_results['平均']).T
                 group_score_df = pd.DataFrame(group_results['100点換算']).T
