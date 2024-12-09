@@ -39,10 +39,12 @@ class Visualizer:
     def _display_numeric_analysis(self, df, attribute, config_manager):
         column_names = config_manager.config.get('column_names', {})
         question_groups = config_manager.config.get('question_groups', {})
+        value_groups = config_manager.config.get('value_groups', {})
         
         if attribute == "全体":
             results = pd.DataFrame()
             group_results = pd.DataFrame()
+            value_group_results = pd.DataFrame()
             
             # 数値列の処理
             for col in df.columns:
@@ -58,6 +60,21 @@ class Visualizer:
                         results.loc[display_name, "100点換算"] = '{:g}'.format(score)
                     else:
                         results.loc[display_name, "100点換算"] = '-'
+                        
+                    # 値グループ化の処理
+                    if col in value_groups:
+                        group_counts = {}
+                        total_count = len(df)
+                        
+                        for range_str, label in value_groups[col].items():
+                            min_val, max_val = map(float, range_str.split('-'))
+                            mask = (df[col] >= min_val) & (df[col] <= max_val)
+                            count = mask.sum()
+                            percentage = (count / total_count) * 100
+                            group_counts[label] = count
+                            value_group_results.loc[display_name, f"{label}（件数）"] = count
+                            value_group_results.loc[display_name, f"{label}（%）"] = '{:.1f}'.format(percentage)
+                            value_group_results.loc[display_name, f"{label}（平均）"] = '{:g}'.format(df[col][mask].mean()) if count > 0 else '-'
                         
             # グループごとの集計結果を計算
             if question_groups:
@@ -80,11 +97,16 @@ class Visualizer:
                 if not group_results.empty:
                     st.write("質問グループごとの分析結果")
                     st.dataframe(group_results)
+                
+                if not value_group_results.empty:
+                    st.write("値グループ化による分析結果")
+                    st.dataframe(value_group_results)
                     
-                # Excelエクスポートに両方のデータを含める
+                # Excelエクスポートにすべてのデータを含める
                 excel_data = {
                     "質問ごとの分析": results,
-                    "グループごとの分析": group_results
+                    "グループごとの分析": group_results,
+                    "値グループ分析": value_group_results
                 }
                 self._save_to_excel(excel_data, "numeric_analysis_all")
             else:

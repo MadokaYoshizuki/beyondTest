@@ -150,7 +150,7 @@ def main():
                 st.info("データを読み込むと、属性の設定が可能になります。")
 
         # Question grouping
-        with st.expander("質問グループの設定", expanded=True):
+        with st.expander("質問グループの設定"):
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
                 # 列名のマッピングを取得
                 column_names = st.session_state.config_manager.config.get('column_names', {})
@@ -177,30 +177,115 @@ def main():
                                 del st.session_state.config_manager.config['question_groups'][group_name]
                             st.session_state.config_manager.save_config()
                             st.success(f"選択したグループを削除しました")
-                            st.rerun()  # experimental_rerunをrerunに変更
+                            st.rerun()
                 
                 # 新規グループの追加
                 st.write("新規グループの追加")
-                group_name = st.text_input("グループ名:")
+                group_name = st.text_input("グループ名:", key="question_group_name")
                 questions = st.multiselect(
                     "グループに含める質問:",
                     [col for col in st.session_state.data_processor.dfs[0].columns 
                      if pd.api.types.is_numeric_dtype(st.session_state.data_processor.dfs[0][col]) and 
                      not st.session_state.data_processor.dfs[0][col].astype(str).str.contains(',').any()],
-                    format_func=lambda x: column_names.get(x, x)
+                    format_func=lambda x: column_names.get(x, x),
+                    key="question_group_items"
                 )
-                if st.button("グループを保存"):
+                if st.button("グループを保存", key="save_question_group"):
                     if group_name and questions:
                         st.session_state.config_manager.save_question_group(group_name, questions)
                         st.success("質問グループを保存しました")
                         # フォームをクリア
-                        st.session_state['group_name'] = ""
-                        st.session_state['questions'] = []
+                        st.session_state['question_group_name'] = ""
+                        st.session_state['question_group_items'] = []
                         st.rerun()
                     else:
                         st.warning("グループ名と質問項目を入力してください")
             else:
                 st.info("データを読み込むと、質問グループの設定が可能になります。")
+
+        # Value grouping
+        with st.expander("値グループ化の設定"):
+            if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                # 列名のマッピングを取得
+                column_names = st.session_state.config_manager.config.get('column_names', {})
+                
+                # 既存の値グループの一覧表示
+                if value_groups := st.session_state.config_manager.config.get('value_groups', {}):
+                    st.write("登録済み値グループ一覧")
+                    
+                    # グループごとに1行で表示
+                    selected_value_groups = []
+                    for column, groups in value_groups.items():
+                        st.write(f"📊 {column_names.get(column, column)}")
+                        for range_str, label in groups.items():
+                            col1, col2, col3 = st.columns([0.1, 0.7, 0.2])
+                            with col1:
+                                if st.checkbox("", key=f"delete_value_group_{column}_{range_str}"):
+                                    selected_value_groups.append((column, range_str))
+                            with col2:
+                                st.caption(f"{range_str}: {label}")
+                    
+                    # 削除機能
+                    if selected_value_groups:
+                        if st.button("選択した値グループを削除"):
+                            for column, range_str in selected_value_groups:
+                                if column in st.session_state.config_manager.config['value_groups']:
+                                    del st.session_state.config_manager.config['value_groups'][column][range_str]
+                                    if not st.session_state.config_manager.config['value_groups'][column]:
+                                        del st.session_state.config_manager.config['value_groups'][column]
+                            st.session_state.config_manager.save_config()
+                            st.success(f"選択した値グループを削除しました")
+                            st.rerun()
+
+                # 新規値グループの追加
+                st.write("新規値グループの追加")
+                
+                # 数値列の選択
+                numeric_columns = [col for col in st.session_state.data_processor.dfs[0].columns 
+                                if pd.api.types.is_numeric_dtype(st.session_state.data_processor.dfs[0][col])]
+                selected_column = st.selectbox(
+                    "対象の列を選択:",
+                    numeric_columns,
+                    format_func=lambda x: column_names.get(x, x),
+                    key="value_group_column"
+                )
+
+                if selected_column:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        min_value = st.number_input(
+                            "最小値:",
+                            value=float(st.session_state.data_processor.dfs[0][selected_column].min()),
+                            key="value_group_min"
+                        )
+                    with col2:
+                        max_value = st.number_input(
+                            "最大値:",
+                            value=float(st.session_state.data_processor.dfs[0][selected_column].max()),
+                            key="value_group_max"
+                        )
+
+                    group_label = st.text_input(
+                        "グループラベル:",
+                        help="例: 低群、中群、高群など",
+                        key="value_group_label"
+                    )
+
+                    if st.button("値グループを保存", key="save_value_group"):
+                        if min_value < max_value and group_label:
+                            range_str = f"{min_value}-{max_value}"
+                            if 'value_groups' not in st.session_state.config_manager.config:
+                                st.session_state.config_manager.config['value_groups'] = {}
+                            if selected_column not in st.session_state.config_manager.config['value_groups']:
+                                st.session_state.config_manager.config['value_groups'][selected_column] = {}
+                            st.session_state.config_manager.config['value_groups'][selected_column][range_str] = group_label
+                            st.session_state.config_manager.save_config()
+                            st.success("値グループを保存しました")
+                            st.rerun()
+                        else:
+                            st.warning("最小値、最大値、およびグループラベルを正しく入力してください")
+            else:
+                st.info("データを読み込むと、値グループ化の設定が可能になります。")
 
         # Visualization section
         st.header("4. 可視化")

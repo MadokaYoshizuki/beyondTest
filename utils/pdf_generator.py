@@ -257,12 +257,21 @@ class PDFGenerator:
         column_names = config_manager.config.get('column_names', {})
 
         # 数値分析結果
-        elements.append(Paragraph("2. 数値分析結果", styles['Heading1']))
+        elements.append(Paragraph("2. 数値分析結果", styles['Heading2']))
         elements.append(Paragraph(
             "各設問項目の数値データについて、基本統計量を算出し分析を行いました。",
             styles['JapaneseParagraph']
         ))
         elements.append(Spacer(1, 0.5*cm))
+        
+        # 値グループ分析
+        if value_groups := config_manager.config.get('value_groups', {}):
+            elements.append(Paragraph("値グループ分析", styles['Heading3']))
+            elements.append(Paragraph(
+                "設定された値グループに基づいて、回答を分類し分析を行いました。",
+                styles['JapaneseParagraph']
+            ))
+            elements.append(Spacer(1, 0.5*cm))
         
         for i, df in enumerate(dfs):
             elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
