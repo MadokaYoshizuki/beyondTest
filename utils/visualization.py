@@ -315,14 +315,8 @@ class Visualizer:
         
         df = dfs[selected_year_idx]
         
-        # 数値回答と複数回答の分析を実行
+        # 数値回答の分析を実行
         self._display_numeric_analysis(df, selected_attribute, config_manager)
-        self._display_multiple_choice_analysis(
-        df, 
-        selected_attribute, 
-        config_manager.config.get('column_names', {}),  # ConfigManager.configからcolumn_namesを取得
-        "まとめて表示"
-    )
 
     def _display_numeric_analysis(self, df, attribute, config_manager):
         column_names = config_manager.config.get('column_names', {})
