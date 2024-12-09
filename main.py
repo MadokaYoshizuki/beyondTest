@@ -346,16 +346,21 @@ def main():
 
                     if st.button("値グループを保存", key="save_value_group"):
                         if min_value < max_value and group_label:
-                            range_str = f"{min_value}-{max_value}"
-                            for col in selected_columns:
-                                if 'value_groups' not in st.session_state.config_manager.config:
-                                    st.session_state.config_manager.config['value_groups'] = {}
-                                if col not in st.session_state.config_manager.config['value_groups']:
-                                    st.session_state.config_manager.config['value_groups'][col] = {}
-                                st.session_state.config_manager.config['value_groups'][col][range_str] = group_label
-                            st.session_state.config_manager.save_config()
-                            st.success("値グループを保存しました")
-                            st.rerun()  # フォームクリアのためにページを再読み込み
+                            # データの最大値を確認
+                            data_max = max(df[selected_columns].max())
+                            if max_value < data_max:
+                                st.error(f"エラー: 指定された最大値（{max_value}）がデータの最大値（{data_max}）より小さいため保存できません。")
+                            else:
+                                range_str = f"{min_value}-{max_value}"
+                                for col in selected_columns:
+                                    if 'value_groups' not in st.session_state.config_manager.config:
+                                        st.session_state.config_manager.config['value_groups'] = {}
+                                    if col not in st.session_state.config_manager.config['value_groups']:
+                                        st.session_state.config_manager.config['value_groups'][col] = {}
+                                    st.session_state.config_manager.config['value_groups'][col][range_str] = group_label
+                                st.session_state.config_manager.save_config()
+                                st.success("値グループを保存しました")
+                                st.rerun()  # フォームクリアのためにページを再読み込み
                         else:
                             st.warning("最小値、最大値、およびグループラベルを正しく入力してください")
             else:
