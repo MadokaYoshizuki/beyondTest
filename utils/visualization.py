@@ -110,23 +110,46 @@ class Visualizer:
                     for group_name, questions in question_groups.items():
                         # グループ内の数値列かつ値グループが設定されている列のみを処理
                         valid_questions = [q for q in questions 
-                                         if q in df.columns and 
-                                         pd.api.types.is_numeric_dtype(df[q]) and 
-                                         q in value_groups]
+                                       if q in df.columns and 
+                                       pd.api.types.is_numeric_dtype(df[q]) and 
+                                       q in value_groups]
                         
                         if valid_questions:
+                            # 各値グループのラベルを収集
+                            all_labels = set()
                             for col in valid_questions:
-                                display_name = f"{group_name}: {column_names.get(col, col)}"
-                                total_count = len(df)
+                                all_labels.update(value_groups[col].values())
+                            
+                            # 各ラベルごとに集計
+                            total_count = len(df)
+                            for label in all_labels:
+                                # グループ内の全ての質問について、指定されたラベルの条件を満たすマスクを作成
+                                group_masks = []
+                                for col in valid_questions:
+                                    col_mask = pd.Series(False, index=df.index)
+                                    for range_str, range_label in value_groups[col].items():
+                                        if range_label == label:
+                                            min_val, max_val = map(float, range_str.split('-'))
+                                            col_mask |= (df[col] >= min_val) & (df[col] <= max_val)
+                                    group_masks.append(col_mask)
                                 
-                                for range_str, label in value_groups[col].items():
-                                    min_val, max_val = map(float, range_str.split('-'))
-                                    mask = (df[col] >= min_val) & (df[col] <= max_val)
-                                    count = mask.sum()
-                                    percentage = (count / total_count) * 100
-                                    group_value_results.loc[display_name, f"{label}（件数）"] = count
-                                    group_value_results.loc[display_name, f"{label}（%）"] = '{:.1f}'.format(percentage)
-                                    group_value_results.loc[display_name, f"{label}（平均）"] = '{:g}'.format(df[col][mask].mean()) if count > 0 else '-'
+                                # 全ての質問で条件を満たす行を特定
+                                final_mask = pd.Series(True, index=df.index)
+                                for mask in group_masks:
+                                    final_mask &= mask
+                                
+                                # 結果を集計
+                                count = final_mask.sum()
+                                percentage = (count / total_count) * 100
+                                mean_values = []
+                                for col in valid_questions:
+                                    if count > 0:
+                                        mean_values.append(df[col][final_mask].mean())
+                                group_mean = sum(mean_values) / len(mean_values) if mean_values else 0
+                                
+                                group_value_results.loc[group_name, f"{label}（件数）"] = count
+                                group_value_results.loc[group_name, f"{label}（%）"] = '{:.1f}'.format(percentage)
+                                group_value_results.loc[group_name, f"{label}（平均）"] = '{:g}'.format(group_mean) if count > 0 else '-'
                     
                     if not group_value_results.empty:
                         st.write("質問グループごとの値グループ分析結果")
