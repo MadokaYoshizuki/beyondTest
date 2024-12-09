@@ -134,16 +134,16 @@ class Visualizer:
                             group_value_results.loc[group_name, f"{label}（平均）"] = '{:g}'.format(label_sum / total_label_count) if total_label_count > 0 else '-'
 
             if not results.empty:
-                if not value_group_results.empty:
-                    st.write("値グループ化による分析結果")
-                    st.dataframe(value_group_results)
-                
                 st.write("質問ごとの分析結果")
                 st.dataframe(results)
                 
                 if not group_results.empty:
                     st.write("質問グループごとの分析結果")
                     st.dataframe(group_results)
+                
+                if not value_group_results.empty:
+                    st.write("値グループ化による分析結果")
+                    st.dataframe(value_group_results)
                 
                 if not group_value_results.empty:
                     st.write("質問グループごとの値グループ分析結果")
@@ -153,10 +153,9 @@ class Visualizer:
                 excel_data = {
                     "質問ごとの分析": results,
                     "グループごとの分析": group_results,
-                    "値グループ分析": value_group_results
+                    "値グループ分析": value_group_results,
+                    "グループ別値グループ分析": group_value_results if not group_value_results.empty else pd.DataFrame()
                 }
-                if not group_value_results.empty:
-                    excel_data["グループ別値グループ分析"] = group_value_results
                 self._save_to_excel(excel_data, "numeric_analysis_all")
             else:
                 st.info("数値データが見つかりませんでした。")
