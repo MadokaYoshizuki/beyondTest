@@ -9,7 +9,13 @@ from utils.pdf_generator import PDFGenerator
 st.set_page_config(layout="wide", page_title="意識調査データ分析ダッシュボード")
 
 def main():
-    st.title("意識調査データ分析ダッシュボード")
+    # メインタイトルの表示
+    st.markdown("""
+    <h1 style='text-align: center; color: #1E88E5; padding: 1rem 0;'>
+        意識調査データ分析・可視化ダッシュボード
+    </h1>
+    """, unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; color: #666; margin-bottom: 2rem;'>データアップロード、分析、可視化機能を提供するダッシュボードアプリケーション</div>", unsafe_allow_html=True)
 
     # Initialize session state
     if 'data_processor' not in st.session_state:
