@@ -102,12 +102,44 @@ class Visualizer:
                     st.write("値グループ化による分析結果")
                     st.dataframe(value_group_results)
                     
+                # 質問グループごとの値グループ分析
+                if question_groups and value_groups:
+                    st.write("質問グループごとの値グループ分析")
+                    group_value_results = pd.DataFrame()
+                    
+                    for group_name, questions in question_groups.items():
+                        # グループ内の数値列かつ値グループが設定されている列のみを処理
+                        valid_questions = [q for q in questions 
+                                         if q in df.columns and 
+                                         pd.api.types.is_numeric_dtype(df[q]) and 
+                                         q in value_groups]
+                        
+                        if valid_questions:
+                            for col in valid_questions:
+                                display_name = f"{group_name}: {column_names.get(col, col)}"
+                                total_count = len(df)
+                                
+                                for range_str, label in value_groups[col].items():
+                                    min_val, max_val = map(float, range_str.split('-'))
+                                    mask = (df[col] >= min_val) & (df[col] <= max_val)
+                                    count = mask.sum()
+                                    percentage = (count / total_count) * 100
+                                    group_value_results.loc[display_name, f"{label}（件数）"] = count
+                                    group_value_results.loc[display_name, f"{label}（%）"] = '{:.1f}'.format(percentage)
+                                    group_value_results.loc[display_name, f"{label}（平均）"] = '{:g}'.format(df[col][mask].mean()) if count > 0 else '-'
+                    
+                    if not group_value_results.empty:
+                        st.write("質問グループごとの値グループ分析結果")
+                        st.dataframe(group_value_results)
+
                 # Excelエクスポートにすべてのデータを含める
                 excel_data = {
                     "質問ごとの分析": results,
                     "グループごとの分析": group_results,
                     "値グループ分析": value_group_results
                 }
+                if 'group_value_results' in locals() and not group_value_results.empty:
+                    excel_data["グループ別値グループ分析"] = group_value_results
                 self._save_to_excel(excel_data, "numeric_analysis_all")
             else:
                 st.info("数値データが見つかりませんでした。")
