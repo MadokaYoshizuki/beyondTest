@@ -11,39 +11,51 @@ class DataProcessor:
         self.dfs = []
         self.dates = dates
         first_df = None
+        structure_mismatch = False
         
         for i, file in enumerate(files):
             try:
                 df = pd.read_csv(file, encoding='utf-8-sig')
                 
-                # 最初のファイルの構造を保存
                 if i == 0:
                     first_df = df
                     first_columns = set(df.columns)
                 else:
-                    # 列の存在チェック
                     current_columns = set(df.columns)
                     missing_columns = first_columns - current_columns
                     extra_columns = current_columns - first_columns
                     
-                    if missing_columns:
-                        st.warning(f"警告: {i+1}回目のデータには以下の列が欠けています: {', '.join(missing_columns)}")
-                    if extra_columns:
-                        st.warning(f"警告: {i+1}回目のデータには追加の列があります: {', '.join(extra_columns)}")
+                    if missing_columns or extra_columns:
+                        st.error(f"エラー: {i+1}回目のデータ構成が1回目と異なります。")
+                        if missing_columns:
+                            st.error(f"欠けている列: {', '.join(missing_columns)}")
+                        if extra_columns:
+                            st.error(f"追加の列: {', '.join(extra_columns)}")
+                        structure_mismatch = True
+                        break
                     
-                    # データ型の比較
                     for col in df.columns:
                         if col in first_df.columns:
                             current_type = self.get_answer_types(pd.DataFrame({col: df[col]}))[col]
                             first_type = self.get_answer_types(pd.DataFrame({col: first_df[col]}))[col]
                             if current_type != first_type:
-                                st.warning(f"警告: {col}の回答タイプが一致しません。{i+1}回目: {current_type}, 1回目: {first_type}")
+                                st.error(f"エラー: {col}の回答タイプが一致しません。{i+1}回目: {current_type}, 1回目: {first_type}")
+                                structure_mismatch = True
+                                break
                 
-                self.dfs.append(df)
+                if not structure_mismatch:
+                    self.dfs.append(df)
                 
             except Exception as e:
                 st.error(f"{i+1}回目のデータ読み込み中にエラーが発生しました: {str(e)}")
-                continue
+                structure_mismatch = True
+                break
+        
+        # 構造の不一致がある場合は全てのデータをクリア
+        if structure_mismatch:
+            self.dfs = []
+            self.dates = []
+            st.error("データ構成の不一致が検出されたため、処理を中止します。")
 
     def get_statistics(self, df):
         numeric_df = df.select_dtypes(include=['number'])

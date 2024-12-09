@@ -185,14 +185,19 @@ def main():
                 group_name = st.text_input("グループ名:")
                 questions = st.multiselect(
                     "グループに含める質問:",
-                    st.session_state.data_processor.dfs[0].columns,
+                    [col for col in st.session_state.data_processor.dfs[0].columns 
+                     if pd.api.types.is_numeric_dtype(st.session_state.data_processor.dfs[0][col]) and 
+                     not st.session_state.data_processor.dfs[0][col].astype(str).str.contains(',').any()],
                     format_func=lambda x: column_names.get(x, x)
                 )
                 if st.button("グループを保存"):
                     if group_name and questions:
                         st.session_state.config_manager.save_question_group(group_name, questions)
                         st.success("質問グループを保存しました")
-                        st.rerun()  # experimental_rerunをrerunに変更
+                        # フォームをクリア
+                        st.session_state['group_name'] = ""
+                        st.session_state['questions'] = []
+                        st.rerun()
                     else:
                         st.warning("グループ名と質問項目を入力してください")
             else:
