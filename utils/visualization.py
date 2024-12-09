@@ -334,7 +334,8 @@ class Visualizer:
         # 列名のマッピングを取得
         column_names = config_manager.config.get('column_names', {})
         question_groups = config_manager.config.get('question_groups', {})
-            
+        
+        # データセットの選択
         year_options = [f"データセット{i+1}({st.session_state.data_processor.dates[i]})" for i in range(len(dfs))]
         selected_year_idx = st.selectbox(
             "データを選択:", 
@@ -343,6 +344,7 @@ class Visualizer:
             key="dashboard_year"
         )
         
+        # 属性の選択
         selected_attribute = st.selectbox(
             "属性項目を選択:",
             ["全体"] + config_manager.config['attributes'],
@@ -360,13 +362,34 @@ class Visualizer:
         df = dfs[selected_year_idx]
         
         # 選択された質問グループに基づいて列を制限
-        if selected_group != "すべての質問":
-            target_columns = question_groups[selected_group]
-            df = df[target_columns]
-
-        # Heatmap
-        st.subheader("相関係数ヒートマップ")
+        target_columns = question_groups.get(selected_group, df.columns) if selected_group != "すべての質問" else df.columns
+        df_filtered = df[target_columns]
         
+        # 数値回答セクション
+        st.subheader("1. 数値回答の分析")
+        
+        # タブで表示方法を切り替え
+        tabs = st.tabs(["相関分析", "回答分布", "散布図"])
+        
+        with tabs[0]:
+            self._display_correlation_heatmap(df_filtered, column_names)
+            
+        with tabs[1]:
+            self._display_value_distribution(df_filtered, selected_attribute, column_names)
+            
+        with tabs[2]:
+            self._display_scatter_plot(df_filtered, column_names)
+            
+        # 数値回答（複数回答）セクション
+        st.subheader("2. 数値回答（複数回答）の分析")
+        
+        display_mode = st.radio(
+            "表示方法：",
+            ["まとめて表示", "個別に表示"],
+            key="multiple_choice_display_mode"
+        )
+
+    def _display_correlation_heatmap(self, df, column_names):
         numeric_columns = df.select_dtypes(include=['number']).columns
         if not numeric_columns.empty:
             # 列名を日本語表示に変換
@@ -388,7 +411,7 @@ class Visualizer:
             
             fig.update_layout(
                 title={
-                    'text': f"{selected_group}の相関係数ヒートマップ",
+                    'text': "相関係数ヒートマップ",
                     'x': 0.5,
                     'xanchor': 'center',
                     'font': {'size': 20}
@@ -561,6 +584,125 @@ class Visualizer:
                     normalize='index'
                 ) * 100
                 
+    def _display_value_distribution(self, df, attribute, column_names):
+        numeric_columns = df.select_dtypes(include=['number']).columns
+        if not numeric_columns.empty:
+            # 値の分布を表示
+            for col in numeric_columns:
+                display_name = column_names.get(col, col)
+                
+                # 回答の件数と構成比の計算
+                value_counts = df[col].value_counts().sort_index()
+                total_count = len(df)
+                
+                # 帯グラフの作成
+                fig = go.Figure()
+                
+                # 回答件数のバー
+                fig.add_trace(go.Bar(
+                    name="回答件数",
+                    x=value_counts.index,
+                    y=value_counts.values,
+                    text=value_counts.values,
+                    textposition='auto',
+                ))
+                
+                # 構成比の折れ線
+                fig.add_trace(go.Scatter(
+                    name="構成比(%)",
+                    x=value_counts.index,
+                    y=(value_counts.values / total_count) * 100,
+                    yaxis="y2",
+                    line=dict(color='red'),
+                    mode='lines+markers+text',
+                    text=[f'{(v/total_count)*100:.1f}%' for v in value_counts.values],
+                    textposition='top center'
+                ))
+                
+                fig.update_layout(
+                    title=f"{display_name}の回答分布",
+                    xaxis_title="回答値",
+                    yaxis_title="回答件数",
+                    yaxis2=dict(
+                        title="構成比(%)",
+                        overlaying="y",
+                        side="right",
+                        range=[0, 100]
+                    ),
+                    showlegend=True,
+                    height=400
+                )
+                
+                st.plotly_chart(fig)
+                
+                # 属性別の分析
+                if attribute != "全体":
+                    # 属性値ごとの分布をまとめて表示
+                    fig = go.Figure()
+                    
+                    for attr_value in df[attribute].unique():
+                        subset = df[df[attribute] == attr_value]
+                        value_counts = subset[col].value_counts().sort_index()
+                        
+                        fig.add_trace(go.Bar(
+                            name=str(attr_value),
+                            x=value_counts.index,
+                            y=(value_counts.values / len(subset)) * 100,
+                            text=[f'{(v/len(subset))*100:.1f}%' for v in value_counts.values],
+                            textposition='auto'
+                        ))
+                    
+                    fig.update_layout(
+                        title=f"{display_name}の属性別回答分布（{attribute}）",
+                        xaxis_title="回答値",
+                        yaxis_title="構成比(%)",
+                        barmode='group',
+                        height=400
+                    )
+                    
+                    st.plotly_chart(fig)
+        else:
+            st.info("数値データが見つかりませんでした。")
+
+    def _display_scatter_plot(self, df, column_names):
+        numeric_columns = df.select_dtypes(include=['number']).columns
+        if len(numeric_columns) >= 2:
+            st.subheader("相関散布図")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                x_axis = st.selectbox(
+                    "X軸の項目:",
+                    numeric_columns,
+                    format_func=lambda x: column_names.get(x, x),
+                    key="scatter_x_axis"
+                )
+            with col2:
+                y_axis = st.selectbox(
+                    "Y軸の項目:",
+                    numeric_columns,
+                    format_func=lambda x: column_names.get(x, x),
+                    key="scatter_y_axis"
+                )
+            
+            if x_axis and y_axis:
+                fig = px.scatter(
+                    df,
+                    x=x_axis,
+                    y=y_axis,
+                    labels={
+                        x_axis: column_names.get(x_axis, x_axis),
+                        y_axis: column_names.get(y_axis, y_axis)
+                    },
+                    trendline="ols"
+                )
+                
+                fig.update_layout(
+                    title=f"{column_names.get(x_axis, x_axis)}と{column_names.get(y_axis, y_axis)}の相関",
+                    height=500
+                )
+                
+                st.plotly_chart(fig)
                 # 100%積み上げ横棒グラフ
                 fig = go.Figure()
                 
