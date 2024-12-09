@@ -221,6 +221,39 @@ def main():
                 st.info("データを読み込むと、質問グループの設定が可能になります。")
 
         # Value grouping
+        # 満点設定
+        with st.expander("満点設定"):
+            if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                # 列名のマッピングを取得
+                column_names = st.session_state.config_manager.config.get('column_names', {})
+                max_scores = st.session_state.config_manager.config.get('max_scores', {})
+                
+                st.write("数値回答の満点設定")
+                
+                # 数値列のみを対象とする
+                numeric_columns = [col for col in st.session_state.data_processor.dfs[0].columns 
+                                 if pd.api.types.is_numeric_dtype(st.session_state.data_processor.dfs[0][col])]
+                
+                # 各数値列の満点を設定
+                new_max_scores = {}
+                for col in numeric_columns:
+                    display_name = column_names.get(col, col)
+                    current_max = max_scores.get(col, 5)  # デフォルト値は5
+                    new_max = st.number_input(
+                        f"{display_name}の満点:",
+                        min_value=1,
+                        value=int(current_max),
+                        key=f"max_score_{col}"
+                    )
+                    new_max_scores[col] = new_max
+                
+                if st.button("満点設定を保存"):
+                    st.session_state.config_manager.config['max_scores'] = new_max_scores
+                    st.session_state.config_manager.save_config()
+                    st.success("満点設定を保存しました")
+            else:
+                st.info("データを読み込むと、満点の設定が可能になります。")
+
         with st.expander("値グループ化の設定"):
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
                 # 列名のマッピングを取得

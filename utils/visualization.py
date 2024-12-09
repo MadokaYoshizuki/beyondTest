@@ -56,9 +56,17 @@ class Visualizer:
                     
                     results.loc[display_name, "平均"] = '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
                     
-                    if pd.notnull(mean_val) and pd.notnull(max_val) and max_val != 0:
-                        score = (mean_val / max_val) * 100
-                        results.loc[display_name, "100点換算"] = '{:g}'.format(score)
+                    # 満点の取得
+                    max_scores = config_manager.config.get('max_scores', {})
+                    
+                    if pd.notnull(mean_val):
+                        # 設定された満点、もしくはデータの最大値を使用
+                        max_score = max_scores.get(col, max_val)
+                        if max_score > 0:
+                            score = (mean_val / max_score) * 100
+                            results.loc[display_name, "100点換算"] = '{:g}'.format(score)
+                        else:
+                            results.loc[display_name, "100点換算"] = '-'
                     else:
                         results.loc[display_name, "100点換算"] = '-'
                         
