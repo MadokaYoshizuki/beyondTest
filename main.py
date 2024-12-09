@@ -249,6 +249,7 @@ def main():
                 
                 if st.button("満点設定を保存"):
                     # データの最大値チェック
+                    df = st.session_state.data_processor.dfs[0]  # データフレームの参照を追加
                     invalid_settings = []
                     for col, max_score in new_max_scores.items():
                         data_max = float(df[col].max())
