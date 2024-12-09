@@ -240,30 +240,53 @@ def main():
                 # 新規値グループの追加
                 st.write("新規値グループの追加")
                 
-                # 数値列の選択
+                # 数値列の選択（複数選択可能に変更）
                 numeric_columns = [col for col in st.session_state.data_processor.dfs[0].columns 
                                 if pd.api.types.is_numeric_dtype(st.session_state.data_processor.dfs[0][col])]
-                selected_column = st.selectbox(
+                selected_columns = st.multiselect(
                     "対象の列を選択:",
                     numeric_columns,
                     format_func=lambda x: column_names.get(x, x),
-                    key="value_group_column"
+                    key="value_group_columns"
                 )
 
-                if selected_column:
+                if selected_columns:
+                    # 選択された列の型チェック
+                    df = st.session_state.data_processor.dfs[0]
+                    is_integer_type = all(
+                        df[col].dtype in ['int64'] or df[col].apply(lambda x: float(x).is_integer()).all()
+                        for col in selected_columns
+                    )
+                    
                     col1, col2 = st.columns(2)
                     with col1:
-                        min_value = st.number_input(
-                            "最小値:",
-                            value=float(st.session_state.data_processor.dfs[0][selected_column].min()),
-                            key="value_group_min"
-                        )
+                        if is_integer_type:
+                            min_value = st.number_input(
+                                "最小値:",
+                                value=int(min(df[selected_columns].min())),
+                                step=1,
+                                key="value_group_min"
+                            )
+                        else:
+                            min_value = st.number_input(
+                                "最小値:",
+                                value=float(min(df[selected_columns].min())),
+                                key="value_group_min"
+                            )
                     with col2:
-                        max_value = st.number_input(
-                            "最大値:",
-                            value=float(st.session_state.data_processor.dfs[0][selected_column].max()),
-                            key="value_group_max"
-                        )
+                        if is_integer_type:
+                            max_value = st.number_input(
+                                "最大値:",
+                                value=int(max(df[selected_columns].max())),
+                                step=1,
+                                key="value_group_max"
+                            )
+                        else:
+                            max_value = st.number_input(
+                                "最大値:",
+                                value=float(max(df[selected_columns].max())),
+                                key="value_group_max"
+                            )
 
                     group_label = st.text_input(
                         "グループラベル:",
@@ -274,13 +297,19 @@ def main():
                     if st.button("値グループを保存", key="save_value_group"):
                         if min_value < max_value and group_label:
                             range_str = f"{min_value}-{max_value}"
-                            if 'value_groups' not in st.session_state.config_manager.config:
-                                st.session_state.config_manager.config['value_groups'] = {}
-                            if selected_column not in st.session_state.config_manager.config['value_groups']:
-                                st.session_state.config_manager.config['value_groups'][selected_column] = {}
-                            st.session_state.config_manager.config['value_groups'][selected_column][range_str] = group_label
+                            for col in selected_columns:
+                                if 'value_groups' not in st.session_state.config_manager.config:
+                                    st.session_state.config_manager.config['value_groups'] = {}
+                                if col not in st.session_state.config_manager.config['value_groups']:
+                                    st.session_state.config_manager.config['value_groups'][col] = {}
+                                st.session_state.config_manager.config['value_groups'][col][range_str] = group_label
                             st.session_state.config_manager.save_config()
                             st.success("値グループを保存しました")
+                            # フォームをクリア
+                            st.session_state['value_group_columns'] = []
+                            st.session_state['value_group_min'] = None
+                            st.session_state['value_group_max'] = None
+                            st.session_state['value_group_label'] = ""
                             st.rerun()
                         else:
                             st.warning("最小値、最大値、およびグループラベルを正しく入力してください")
