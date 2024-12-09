@@ -248,9 +248,20 @@ def main():
                     new_max_scores[col] = new_max
                 
                 if st.button("満点設定を保存"):
-                    st.session_state.config_manager.config['max_scores'] = new_max_scores
-                    st.session_state.config_manager.save_config()
-                    st.success("満点設定を保存しました")
+                    # データの最大値チェック
+                    invalid_settings = []
+                    for col, max_score in new_max_scores.items():
+                        data_max = float(df[col].max())
+                        if max_score < data_max:
+                            display_name = column_names.get(col, col)
+                            invalid_settings.append(f"{display_name}（設定値: {max_score}, データの最大値: {data_max}）")
+                    
+                    if invalid_settings:
+                        st.error("以下の項目で設定された満点がデータの最大値より小さいため保存できません：\n" + "\n".join(invalid_settings))
+                    else:
+                        st.session_state.config_manager.config['max_scores'] = new_max_scores
+                        st.session_state.config_manager.save_config()
+                        st.success("満点設定を保存しました")
             else:
                 st.info("データを読み込むと、満点の設定が可能になります。")
 
@@ -346,9 +357,13 @@ def main():
 
                     if st.button("値グループを保存", key="save_value_group"):
                         if min_value < max_value and group_label:
-                            # データの最大値を確認
+                            # データの最小値と最大値を確認
+                            data_min = min(df[selected_columns].min())
                             data_max = max(df[selected_columns].max())
-                            if max_value < data_max:
+                            
+                            if min_value < data_min:
+                                st.error(f"エラー: 指定された最小値（{min_value}）がデータの最小値（{data_min}）より小さいため保存できません。")
+                            elif max_value < data_max:
                                 st.error(f"エラー: 指定された最大値（{max_value}）がデータの最大値（{data_max}）より小さいため保存できません。")
                             else:
                                 range_str = f"{min_value}-{max_value}"
