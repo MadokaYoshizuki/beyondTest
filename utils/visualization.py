@@ -193,8 +193,7 @@ class Visualizer:
                     labels={
                         x_axis: column_names.get(x_axis, x_axis),
                         y_axis: column_names.get(y_axis, y_axis)
-                    },
-                    trendline="ols"
+                    }
                 )
                 
                 fig.update_layout(
@@ -318,7 +317,12 @@ class Visualizer:
         
         # 数値回答と複数回答の分析を実行
         self._display_numeric_analysis(df, selected_attribute, config_manager)
-        self._display_multiple_choice_analysis(df, selected_attribute, config_manager, "まとめて表示")
+        self._display_multiple_choice_analysis(
+        df, 
+        selected_attribute, 
+        config_manager.config.get('column_names', {}),  # ConfigManager.configからcolumn_namesを取得
+        "まとめて表示"
+    )
 
     def _display_numeric_analysis(self, df, attribute, config_manager):
         column_names = config_manager.config.get('column_names', {})
