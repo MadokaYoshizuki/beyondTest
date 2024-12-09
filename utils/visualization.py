@@ -232,7 +232,7 @@ class Visualizer:
             
         question_groups = config_manager.config.get('question_groups', {})
             
-        year_options = [f"{i+1}回目のデータ" for i in range(len(dfs))]
+        year_options = [f"データセット{i+1}({st.session_state.data_processor.dates[i]})" for i in range(len(dfs))]
         selected_year_idx = st.selectbox(
             "データを選択:",
             range(len(dfs)),
@@ -327,7 +327,7 @@ class Visualizer:
         column_names = config_manager.config.get('column_names', {})
         question_groups = config_manager.config.get('question_groups', {})
             
-        year_options = [f"{i+1}回目のデータ" for i in range(len(dfs))]
+        year_options = [f"データセット{i+1}({st.session_state.data_processor.dates[i]})" for i in range(len(dfs))]
         selected_year_idx = st.selectbox(
             "データを選択:", 
             range(len(dfs)), 
