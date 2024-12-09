@@ -305,12 +305,7 @@ def main():
                                 st.session_state.config_manager.config['value_groups'][col][range_str] = group_label
                             st.session_state.config_manager.save_config()
                             st.success("値グループを保存しました")
-                            # フォームをクリア
-                            st.session_state['value_group_columns'] = []
-                            st.session_state['value_group_min'] = None
-                            st.session_state['value_group_max'] = None
-                            st.session_state['value_group_label'] = ""
-                            st.rerun()
+                            st.rerun()  # フォームクリアのためにページを再読み込み
                         else:
                             st.warning("最小値、最大値、およびグループラベルを正しく入力してください")
             else:
