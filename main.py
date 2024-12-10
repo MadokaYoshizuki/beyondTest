@@ -502,14 +502,107 @@ def main():
     elif st.session_state.current_menu == "6.PDF出力":
         st.markdown("## 6. PDF出力")
         st.markdown("---")
-        if st.button("PDF出力"):
-            pdf_generator = PDFGenerator()
-            pdf_path = pdf_generator.generate_pdf(
-                st.session_state.data_processor.dfs,
-                st.session_state.config_manager,
-                st.session_state.visualizer
+        
+        # PDF設定の編集
+        with st.expander("PDF出力設定", expanded=True):
+            st.write("出力内容の選択")
+            
+            # 新規設定の作成
+            settings_name = st.text_input("設定名", value="新規設定")
+            
+            # セクションの選択
+            st.write("### セクションの選択")
+            
+            # 数値表の設定
+            if st.checkbox("数値表を含める", value=True):
+                st.write("数値表の設定：")
+                col1, col2 = st.columns(2)
+                with col1:
+                    show_group = st.checkbox("グループ分析を表示", value=True)
+                with col2:
+                    show_question = st.checkbox("質問別分析を表示", value=True)
+            
+            # 相関分析の設定
+            if st.checkbox("相関分析を含める", value=True):
+                st.write("相関分析の設定：")
+                correlation_mode = st.selectbox(
+                    "分析モード",
+                    ["質問間の相関", "グループ間の相関"],
+                    index=0
+                )
+                if correlation_mode == "グループ間の相関":
+                    correlation_group = st.selectbox(
+                        "対象グループ",
+                        ["すべての質問"] + list(st.session_state.config_manager.config.get('question_groups', {}).keys())
+                    )
+                else:
+                    correlation_group = "すべての質問"
+            
+            # 重要度-満足度分析の設定
+            include_is = st.checkbox("重要度-満足度分析を含める", value=True)
+            
+            # 設定の保存ボタン
+            if st.button("設定を保存"):
+                sections = []
+                
+                # 数値表のセクション
+                if st.session_state.get('show_numeric', True):
+                    sections.append({
+                        "type": "数値表",
+                        "title": "属性別平均値一覧",
+                        "options": {
+                            "show_group_analysis": show_group,
+                            "show_question_analysis": show_question
+                        }
+                    })
+                
+                # 相関分析のセクション
+                if st.session_state.get('show_correlation', True):
+                    sections.append({
+                        "type": "相関分析",
+                        "title": "質問間の相関分析",
+                        "options": {
+                            "mode": correlation_mode,
+                            "group": correlation_group
+                        }
+                    })
+                
+                # 重要度-満足度分析のセクション
+                if include_is:
+                    sections.append({
+                        "type": "重要度満足度",
+                        "title": "重要度-満足度分析",
+                        "options": {}
+                    })
+                
+                # 設定の保存
+                st.session_state.config_manager.config['pdf_settings'][settings_name] = {
+                    "title": settings_name,
+                    "sections": sections
+                }
+                st.session_state.config_manager.save_config()
+                st.success(f"設定 '{settings_name}' を保存しました")
+        
+        # 保存済み設定の表示と選択
+        saved_settings = st.session_state.config_manager.config.get('pdf_settings', {})
+        if saved_settings:
+            st.write("### 保存済み設定")
+            selected_setting = st.selectbox(
+                "使用する設定を選択",
+                options=list(saved_settings.keys()),
+                format_func=lambda x: f"{x} ({len(saved_settings[x]['sections'])}セクション)"
             )
-            st.success(f"PDFを生成しました: {pdf_path}")
+            
+            # PDF生成ボタン
+            if st.button("PDF出力"):
+                pdf_generator = PDFGenerator()
+                pdf_path = pdf_generator.generate_pdf(
+                    st.session_state.data_processor.dfs,
+                    st.session_state.config_manager,
+                    st.session_state.visualizer,
+                    settings_name=selected_setting
+                )
+                st.success(f"PDFを生成しました: {pdf_path}")
 
 if __name__ == "__main__":
     main()
