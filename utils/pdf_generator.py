@@ -17,10 +17,25 @@ from datetime import datetime
 class PDFGenerator:
     def __init__(self):
         # 日本語フォントの設定
+        self.font_name = 'Helvetica'
         try:
-            pdfmetrics.registerFont(TTFont('NotoSans', 'NotoSansCJKjp-Regular.ttf'))
-        except:
-            st.warning("日本語フォントが見つかりません。デフォルトフォントを使用します。")
+            # システムフォントパスを探索
+            font_paths = [
+                '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+                '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+                'NotoSansCJKjp-Regular.ttf'
+            ]
+            
+            for font_path in font_paths:
+                if os.path.exists(font_path):
+                    pdfmetrics.registerFont(TTFont('NotoSans', font_path))
+                    self.font_name = 'NotoSans'
+                    break
+            
+            if self.font_name == 'Helvetica':
+                st.warning("日本語フォントが見つかりません。代替フォントを使用します。")
+        except Exception as e:
+            st.warning(f"フォント設定中にエラーが発生しました: {str(e)}")
 
         # スタイルの設定
         self.styles = getSampleStyleSheet()
@@ -28,15 +43,15 @@ class PDFGenerator:
         # カスタムスタイルの追加
         self.styles.add(ParagraphStyle(
             name='JapaneseParagraph',
-            fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
+            fontName=self.font_name,
             fontSize=10,
             leading=14
         ))
         
-        # 既存のヘッディングスタイルを日本語フォントで上書き
+        # 既存のヘッディングスタイルを上書き
         for style_name in ['Title', 'Heading1', 'Heading2', 'Heading3']:
             if style_name in self.styles:
-                self.styles[style_name].fontName = 'NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+                self.styles[style_name].fontName = self.font_name
                 if style_name == 'Title':
                     self.styles[style_name].fontSize = 24
                     self.styles[style_name].leading = 28
@@ -83,6 +98,9 @@ class PDFGenerator:
 
     def _create_heatmap(self, corr_data, column_names):
         """相関係数ヒートマップの作成"""
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        
         # プロットサイズの設定
         plt.figure(figsize=(10, 8))
         
@@ -159,7 +177,7 @@ class PDFGenerator:
                     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'NotoSans'),
+                    ('FONTNAME', (0, 0), (-1, -1), self.font_name),
                     ('FONTSIZE', (0, 0), (-1, 0), 10),
                     ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ]))
@@ -209,7 +227,7 @@ class PDFGenerator:
                     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'NotoSans'),
+                    ('FONTNAME', (0, 0), (-1, -1), self.font_name),
                     ('FONTSIZE', (0, 0), (-1, 0), 10),
                     ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ]))
