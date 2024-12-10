@@ -293,17 +293,45 @@ class Visualizer:
                 satisfaction_mean = valid_data[satisfaction_col].mean()
 
                 # データポイントの追加
+                # ラベルの配置位置を計算（重なりを避けるため）
+                text_pos = "top center"  # デフォルトの位置
+                if importance_mean < overall_importance_mean and satisfaction_mean < overall_satisfaction_mean:
+                    text_pos = "bottom left"
+                elif importance_mean > overall_importance_mean and satisfaction_mean < overall_satisfaction_mean:
+                    text_pos = "bottom right"
+                elif importance_mean < overall_importance_mean and satisfaction_mean > overall_satisfaction_mean:
+                    text_pos = "top left"
+                elif importance_mean > overall_importance_mean and satisfaction_mean > overall_satisfaction_mean:
+                    text_pos = "top right"
+
                 fig.add_trace(
                     go.Scatter(x=[importance_mean],
                                y=[satisfaction_mean],
-                               mode='markers+text',
+                               mode='markers',  # テキストは個別のアノテーションとして追加
                                name=pair_name,
-                               text=[pair_name],
-                               textposition="top center",
                                marker=dict(size=12, symbol='circle'),
                                hovertemplate="<b>%{text}</b><br>" +
                                "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
                                "<extra></extra>"))
+                
+                # ラベルを引き出し線付きのアノテーションとして追加
+                fig.add_annotation(
+                    x=importance_mean,
+                    y=satisfaction_mean,
+                    text=pair_name,
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor="grey",
+                    ax=20 if text_pos in ["top right", "bottom right"] else -20,
+                    ay=20 if text_pos in ["top right", "top left"] else -20,
+                    bgcolor="white",
+                    bordercolor="grey",
+                    borderwidth=1,
+                    borderpad=4,
+                    font=dict(size=12)
+                )
 
         # 重要度-満足度のペアから直接平均値を計算
         importance_satisfaction_data = []
@@ -358,8 +386,8 @@ class Visualizer:
         # 平均値のテキストを個別のアノテーションとして追加
         fig.add_annotation(
             text=f"満足度平均：{overall_satisfaction_mean:.1f}",
-            x=x_min + 0.05,
-            y=overall_satisfaction_mean,
+            x=x_min,
+            y=overall_satisfaction_mean + 0.04,
             xref="x",
             yref="y",
             showarrow=False,
@@ -368,12 +396,12 @@ class Visualizer:
         )
         fig.add_annotation(
             text=f"重要度平均：{overall_importance_mean:.1f}",
-            x=overall_importance_mean,
-            y=y_min + 0.05,
+            x=overall_importance_mean + 0.02,
+            y=y_min,
             xref="x",
             yref="y",
             showarrow=False,
-            xanchor="center",
+            xanchor="left",
             yanchor="bottom"
         )
 
@@ -406,17 +434,18 @@ class Visualizer:
             height=600,
             showlegend=True,
             plot_bgcolor='white',
-            # プロットエリアの枠線を追加
-            shapes=[
-                dict(type='rect',
-                     xref='paper',
-                     yref='paper',
-                     x0=0,
-                     y0=0,
-                     x1=1,
-                     y1=1,
-                     line=dict(color='rgba(128, 128, 128, 1)', width=1))
-            ])
+            # # プロットエリアの枠線を追加
+            # shapes=[
+            #     dict(type='rect',
+            #          xref='paper',
+            #          yref='paper',
+            #          x0=0,
+            #          y0=0,
+            #          x1=1,
+            #          y1=1,
+            #          line=dict(color='rgba(128, 128, 128, 1)', width=1))
+            # ]
+        )
 
         # ラベルの位置を自動調整
         fig.update_traces(textposition='top center',
