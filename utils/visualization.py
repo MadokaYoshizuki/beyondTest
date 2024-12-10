@@ -305,16 +305,27 @@ class Visualizer:
                                "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
                                "<extra></extra>"))
 
-        # 全データの平均値を計算（デバッグ用にprint文を追加）
-        all_importance_means = [trace.x[0] for trace in fig.data]
-        all_satisfaction_means = [trace.y[0] for trace in fig.data]
-        overall_importance_mean = round(sum(all_importance_means) / len(all_importance_means), 1)
-        overall_satisfaction_mean = round(sum(all_satisfaction_means) / len(all_satisfaction_means), 1)
+        # 重要度-満足度のペアから直接平均値を計算
+        importance_satisfaction_data = []
+        for pair_name, pair_data in importance_satisfaction_pairs.items():
+            importance_col = pair_data['importance']
+            satisfaction_col = pair_data['satisfaction']
+            
+            # 数値データのみを抽出
+            valid_data = df[[importance_col, satisfaction_col]].dropna()
+            
+            if not valid_data.empty:
+                importance_mean = valid_data[importance_col].mean()
+                satisfaction_mean = valid_data[satisfaction_col].mean()
+                importance_satisfaction_data.append((importance_mean, satisfaction_mean))
+
+        # 全体の平均値を計算
+        overall_importance_mean = round(sum(x[0] for x in importance_satisfaction_data) / len(importance_satisfaction_data), 1)
+        overall_satisfaction_mean = round(sum(x[1] for x in importance_satisfaction_data) / len(importance_satisfaction_data), 1)
         
         print(f"Debug - 重要度の平均値: {overall_importance_mean}")
         print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
-        print(f"Debug - 重要度の値一覧: {all_importance_means}")
-        print(f"Debug - 満足度の値一覧: {all_satisfaction_means}")
+        print(f"Debug - 重要度と満足度のデータ: {importance_satisfaction_data}")
 
         # 軸の範囲を設定
         x_min, x_max = 2.0, 3.2  # 重要度の範囲
