@@ -166,9 +166,9 @@ class Visualizer:
             st.info("単一回答の数値データが見つかりませんでした。")
             return
             
-        # Y軸のポジション（質問番号と質問名）を設定
+        # Y軸のポジション設定（質問番号はデータの列名から抽出）
         y_positions = list(range(len(numeric_columns)))
-        y_labels = [f"Q{i+1}. {column_names.get(col, col)}" for i, col in enumerate(numeric_columns)]
+        y_labels = [column_names.get(col, col) for col in numeric_columns]  # 列名をそのまま使用
         
         # データを格納するリスト
         fig_data = []
@@ -259,8 +259,14 @@ class Visualizer:
                 uniformtext=dict(mode="hide", minsize=8)  # テキストサイズの自動調整
             )
             
-            # グラフを一度だけ表示
-            st.plotly_chart(fig, use_container_width=True)
+            # グラフのサイズとマージンを調整
+            fig.update_layout(
+                width=1000,  # グラフの幅を固定
+                height=max(500, len(numeric_columns) * 40)  # 質問数に応じて高さを調整
+            )
+            
+            # グラフを表示
+            st.plotly_chart(fig, use_container_width=False)  # コンテナ幅に合わせない
         else:
             st.info("単一回答の数値データが見つかりませんでした。")
 
