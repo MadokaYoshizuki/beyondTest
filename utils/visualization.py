@@ -316,15 +316,19 @@ class Visualizer:
         print(f"Debug - 重要度の値一覧: {all_importance_means}")
         print(f"Debug - 満足度の値一覧: {all_satisfaction_means}")
 
+        # データの範囲を取得して平均値の線の範囲を設定
+        x_range = [min(all_importance_means) - 0.5, max(all_importance_means) + 0.5]
+        y_range = [min(all_satisfaction_means) - 0.5, max(all_satisfaction_means) + 0.5]
+
         # 平均値の点線を追加
         # 満足度の平均値（横線）
         fig.add_shape(
             type="line",
-            x0=0,
-            x1=1,
+            x0=x_range[0],  # データの範囲の最小値
+            x1=x_range[1],  # データの範囲の最大値
             y0=overall_satisfaction_mean,
             y1=overall_satisfaction_mean,
-            xref="paper",
+            xref="x",
             yref="y",
             line=dict(color="orange", width=1, dash="dot")
         )
@@ -333,19 +337,19 @@ class Visualizer:
             type="line",
             x0=overall_importance_mean,
             x1=overall_importance_mean,
-            y0=0,
-            y1=1,
+            y0=y_range[0],  # データの範囲の最小値
+            y1=y_range[1],  # データの範囲の最大値
             xref="x",
-            yref="paper",
+            yref="y",
             line=dict(color="orange", width=1, dash="dot")
         )
 
         # 平均値のテキストを個別のアノテーションとして追加（プロットエリア内に収める）
         fig.add_annotation(
             text=f"満足度平均：{overall_satisfaction_mean:.1f}",
-            x=0.02,  # プロットエリアの左端から少し離す
+            x=x_range[0] + 0.1,  # データの範囲の最小値からやや右
             y=overall_satisfaction_mean,
-            xref="paper",
+            xref="x",
             yref="y",
             showarrow=False,
             xanchor="left",
@@ -354,9 +358,9 @@ class Visualizer:
         fig.add_annotation(
             text=f"重要度平均：{overall_importance_mean:.1f}",
             x=overall_importance_mean,
-            y=0.02,  # プロットエリアの下端から少し離す
+            y=y_range[0] + 0.1,  # データの範囲の最小値からやや上
             xref="x",
-            yref="paper",
+            yref="y",
             showarrow=False,
             xanchor="center",
             yanchor="bottom"
