@@ -315,27 +315,49 @@ class Visualizer:
 
         # 平均値の点線を追加
         # 満足度の平均値（横線）
-        fig.add_hline(y=overall_satisfaction_mean,
-                      line=dict(color="orange", width=1, dash="dot"))
+        fig.add_shape(
+            type="line",
+            x0=0,
+            x1=1,
+            y0=overall_satisfaction_mean,
+            y1=overall_satisfaction_mean,
+            xref="paper",
+            yref="y",
+            line=dict(color="orange", width=1, dash="dot")
+        )
         # 重要度の平均値（縦線）
-        fig.add_vline(x=overall_importance_mean,
-                      line=dict(color="orange", width=1, dash="dot"))
+        fig.add_shape(
+            type="line",
+            x0=overall_importance_mean,
+            x1=overall_importance_mean,
+            y0=0,
+            y1=1,
+            xref="x",
+            yref="paper",
+            line=dict(color="orange", width=1, dash="dot")
+        )
 
-        # 平均値のテキストを個別のアノテーションとして追加
-        fig.add_annotation(text=f"満足度平均：{overall_satisfaction_mean:.1f}",
-                           xref="paper",
-                           yref="y",
-                           x=0,
-                           y=overall_satisfaction_mean,
-                           showarrow=False,
-                           xshift=-50)
-        fig.add_annotation(text=f"重要度平均：{overall_importance_mean:.1f}",
-                           xref="x",
-                           yref="paper",
-                           x=overall_importance_mean,
-                           y=0,
-                           showarrow=False,
-                           yshift=-30)
+        # 平均値のテキストを個別のアノテーションとして追加（プロットエリア内に収める）
+        fig.add_annotation(
+            text=f"満足度平均：{overall_satisfaction_mean:.1f}",
+            x=0.02,  # プロットエリアの左端から少し離す
+            y=overall_satisfaction_mean,
+            xref="paper",
+            yref="y",
+            showarrow=False,
+            xanchor="left",
+            yanchor="middle"
+        )
+        fig.add_annotation(
+            text=f"重要度平均：{overall_importance_mean:.1f}",
+            x=overall_importance_mean,
+            y=0.02,  # プロットエリアの下端から少し離す
+            xref="x",
+            yref="paper",
+            showarrow=False,
+            xanchor="center",
+            yanchor="bottom"
+        )
 
         # レイアウトの設定
         fig.update_layout(
