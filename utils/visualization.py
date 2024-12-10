@@ -292,64 +292,63 @@ class Visualizer:
                 importance_mean = valid_data[importance_col].mean()
                 satisfaction_mean = valid_data[satisfaction_col].mean()
 
-                # データポイントの追加
-                # ラベルの配置位置を計算（重なりを避けるため）
-                text_pos = "top center"  # デフォルトの位置
-                if importance_mean < overall_importance_mean and satisfaction_mean < overall_satisfaction_mean:
-                    text_pos = "bottom left"
-                elif importance_mean > overall_importance_mean and satisfaction_mean < overall_satisfaction_mean:
-                    text_pos = "bottom right"
-                elif importance_mean < overall_importance_mean and satisfaction_mean > overall_satisfaction_mean:
-                    text_pos = "top left"
-                elif importance_mean > overall_importance_mean and satisfaction_mean > overall_satisfaction_mean:
-                    text_pos = "top right"
-
-                fig.add_trace(
-                    go.Scatter(x=[importance_mean],
-                               y=[satisfaction_mean],
-                               mode='markers',  # テキストは個別のアノテーションとして追加
-                               name=pair_name,
-                               marker=dict(size=12, symbol='circle'),
-                               hovertemplate="<b>%{text}</b><br>" +
-                               "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
-                               "<extra></extra>"))
-                
-                # ラベルを引き出し線付きのアノテーションとして追加
-                fig.add_annotation(
-                    x=importance_mean,
-                    y=satisfaction_mean,
-                    text=pair_name,
-                    showarrow=True,
-                    arrowhead=2,
-                    arrowsize=1,
-                    arrowwidth=2,
-                    arrowcolor="grey",
-                    ax=20 if text_pos in ["top right", "bottom right"] else -20,
-                    ay=20 if text_pos in ["top right", "top left"] else -20,
-                    bgcolor="white",
-                    bordercolor="grey",
-                    borderwidth=1,
-                    borderpad=4,
-                    font=dict(size=12)
-                )
-
-        # 重要度-満足度のペアから直接平均値を計算
-        importance_satisfaction_data = []
-        for pair_name, pair_data in importance_satisfaction_pairs.items():
-            importance_col = pair_data['importance']
-            satisfaction_col = pair_data['satisfaction']
-            
-            # 数値データのみを抽出
-            valid_data = df[[importance_col, satisfaction_col]].dropna()
-            
-            if not valid_data.empty:
-                importance_mean = valid_data[importance_col].mean()
-                satisfaction_mean = valid_data[satisfaction_col].mean()
+                # データを一時保存
+                temp_data.append({
+                    'name': pair_name,
+                    'importance_mean': importance_mean,
+                    'satisfaction_mean': satisfaction_mean
+                })
                 importance_satisfaction_data.append((importance_mean, satisfaction_mean))
 
         # 全体の平均値を計算
         overall_importance_mean = round(sum(x[0] for x in importance_satisfaction_data) / len(importance_satisfaction_data), 1)
         overall_satisfaction_mean = round(sum(x[1] for x in importance_satisfaction_data) / len(importance_satisfaction_data), 1)
+        
+        print(f"Debug - 重要度の平均値: {overall_importance_mean}")
+        print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
+        print(f"Debug - 重要度と満足度のデータ: {importance_satisfaction_data}")
+
+        # データポイントとラベルを追加
+        for data in temp_data:
+            # ラベルの配置位置を計算（重なりを避けるため）
+            text_pos = "top center"  # デフォルトの位置
+            if data['importance_mean'] < overall_importance_mean and data['satisfaction_mean'] < overall_satisfaction_mean:
+                text_pos = "bottom left"
+            elif data['importance_mean'] > overall_importance_mean and data['satisfaction_mean'] < overall_satisfaction_mean:
+                text_pos = "bottom right"
+            elif data['importance_mean'] < overall_importance_mean and data['satisfaction_mean'] > overall_satisfaction_mean:
+                text_pos = "top left"
+            elif data['importance_mean'] > overall_importance_mean and data['satisfaction_mean'] > overall_satisfaction_mean:
+                text_pos = "top right"
+
+            fig.add_trace(
+                go.Scatter(x=[data['importance_mean']],
+                           y=[data['satisfaction_mean']],
+                           mode='markers',  # テキストは個別のアノテーションとして追加
+                           name=data['name'],
+                           marker=dict(size=12, symbol='circle'),
+                           hovertemplate="<b>%{text}</b><br>" +
+                           "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
+                           "<extra></extra>"))
+            
+            # ラベルを引き出し線付きのアノテーションとして追加
+            fig.add_annotation(
+                x=data['importance_mean'],
+                y=data['satisfaction_mean'],
+                text=data['name'],
+                showarrow=True,
+                arrowhead=2,
+                arrowsize=1,
+                arrowwidth=2,
+                arrowcolor="grey",
+                ax=20 if text_pos in ["top right", "bottom right"] else -20,
+                ay=20 if text_pos in ["top right", "top left"] else -20,
+                bgcolor="white",
+                bordercolor="grey",
+                borderwidth=1,
+                borderpad=4,
+                font=dict(size=12)
+            )
         
         print(f"Debug - 重要度の平均値: {overall_importance_mean}")
         print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
