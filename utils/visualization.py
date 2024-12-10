@@ -303,8 +303,20 @@ class Visualizer:
                 y_mean = scatter_df[y_axis].mean()
 
                 # 平均値の位置に点線を追加
-                fig.add_hline(y=y_mean, line_dash="dash", line_color="orange", annotation_text="平均値")
-                fig.add_vline(x=x_mean, line_dash="dash", line_color="orange", annotation_text="平均値")
+                fig.add_hline(
+                    y=y_mean,
+                    line_dash="dash",
+                    line_color="orange",
+                    line_width=1,
+                    annotation_text=f"平均：{y_mean:.1f}"
+                )
+                fig.add_vline(
+                    x=x_mean,
+                    line_dash="dash",
+                    line_color="orange",
+                    line_width=1,
+                    annotation_text=f"平均：{x_mean:.1f}"
+                )
                 
                 fig.update_layout(
                     title=f"{x_axis}と{y_axis}の相関",
@@ -312,12 +324,18 @@ class Visualizer:
                     xaxis=dict(
                         title=f"{x_axis}の平均値",
                         tickmode='linear',
-                        dtick=1  # 目盛りの間隔を1に設定
+                        dtick=1,  # 目盛りの間隔を1に設定
+                        showgrid=True,
+                        gridwidth=1,
+                        gridcolor='rgba(128, 128, 128, 0.2)'
                     ),
                     yaxis=dict(
                         title=f"{y_axis}の平均値",
                         tickmode='linear',
-                        dtick=1  # 目盛りの間隔を1に設定
+                        dtick=1,  # 目盛りの間隔を1に設定
+                        showgrid=True,
+                        gridwidth=1,
+                        gridcolor='rgba(128, 128, 128, 0.2)'
                     )
                 )
                 
