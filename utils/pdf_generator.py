@@ -8,9 +8,8 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import pandas as pd
-import plotly.io as pio
-import plotly.graph_objects as go
-import plotly.express as px
+import matplotlib.pyplot as plt
+import seaborn as sns
 import os
 import streamlit as st
 from datetime import datetime
@@ -51,7 +50,6 @@ class PDFGenerator:
                     self.styles[style_name].fontSize = 12
                     self.styles[style_name].leading = 16
 
-
     def _create_title_page(self):
         """タイトルページの作成"""
         elements = []
@@ -85,59 +83,50 @@ class PDFGenerator:
 
     def _create_heatmap(self, corr_data, column_names):
         """相関係数ヒートマップの作成"""
+        # プロットサイズの設定
+        plt.figure(figsize=(10, 8))
+        
+        # ヒートマップの作成
         display_cols = [column_names.get(col, col) for col in corr_data.columns]
+        sns.heatmap(corr_data, 
+                   xticklabels=display_cols,
+                   yticklabels=display_cols,
+                   annot=True,
+                   fmt='.2f',
+                   cmap='RdBu_r',
+                   center=0,
+                   cbar_kws={'label': '相関係数'})
         
-        fig = go.Figure(data=go.Heatmap(
-            z=corr_data,
-            x=display_cols,
-            y=display_cols,
-            colorscale='RdBu',
-            text=[[f'{val:.2f}' for val in row] for row in corr_data.values],
-            texttemplate='%{text}',
-            textfont={"size": 10},
-            hoverongaps=False
-        ))
+        # 軸ラベルの回転
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+        plt.tight_layout()
         
-        fig.update_layout(
-            width=800,
-            height=800,
-            xaxis={'tickangle': 45},
-            yaxis={'tickangle': 0}
-        )
-        
-        return fig
+        return plt.gcf()
 
-    def _create_bar_chart(self, data, title, x_label="選択肢", y_label="回答数"):
-        """棒グラフを生成する内部メソッド"""
-        fig = go.Figure(data=[
-            go.Bar(
-                x=data.index,
-                y=data.values,
-                text=data.values,
-                textposition='auto',
-                hoverinfo='x+y',
-                marker_color='rgb(55, 83, 109)'
-            )
-        ])
+    def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
+        """散布図の作成"""
+        plt.figure(figsize=(10, 8))
         
-        fig.update_layout(
-            width=1000,
-            height=500,
-            title={
-                'text': title,
-                'x': 0.5,
-                'xanchor': 'center',
-                'font': {'size': 20}
-            },
-            xaxis_title=x_label,
-            yaxis_title=y_label,
-            xaxis={'tickangle': 45},
-            margin=dict(t=100, l=100, r=100, b=100),
-            font=dict(size=12),
-            showlegend=False
-        )
+        # 散布図のプロット
+        plt.scatter(data_points['importance'], data_points['satisfaction'])
         
-        return fig
+        # ラベルの追加
+        for idx, point in data_points.iterrows():
+            plt.annotate(point['name'], 
+                        (point['importance'], point['satisfaction']),
+                        xytext=(5, 5), textcoords='offset points')
+        
+        # 軸の設定
+        plt.xlim(2.0, 3.2)
+        plt.ylim(2.0, 3.6)
+        plt.xlabel('重要度')
+        plt.ylabel('満足度')
+        plt.title(title)
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        
+        return plt.gcf()
 
     def _add_numeric_analysis_section(self, elements, dfs, config_manager, section_number, options):
         """数値分析のセクションを追加"""
@@ -202,7 +191,8 @@ class PDFGenerator:
                 # ヒートマップの生成
                 fig = self._create_heatmap(corr_data, column_names)
                 temp_path = f"temp_heatmap_{i}.png"
-                pio.write_image(fig, temp_path)
+                fig.savefig(temp_path, dpi=300, bbox_inches='tight')
+                plt.close(fig)  # プロットを閉じる
                 correlation_elements.append(Image(temp_path, width=6*inch, height=6*inch))
                 os.remove(temp_path)
                 
@@ -243,9 +233,9 @@ class PDFGenerator:
             is_elements = []
             is_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
             
-            # 重要度-満足度の散布図を生成
-            fig = go.Figure()
+            # データポイントの準備
             pairs = config_manager.config.get('importance_satisfaction_pairs', {})
+            data_points = []
             
             for pair_name, pair_data in pairs.items():
                 importance_col = pair_data['importance']
@@ -253,36 +243,23 @@ class PDFGenerator:
                 
                 valid_data = df[[importance_col, satisfaction_col]].dropna()
                 if not valid_data.empty:
-                    importance_mean = valid_data[importance_col].mean()
-                    satisfaction_mean = valid_data[satisfaction_col].mean()
-                    
-                    fig.add_trace(
-                        go.Scatter(
-                            x=[importance_mean],
-                            y=[satisfaction_mean],
-                            mode='markers+text',
-                            name=pair_name,
-                            text=[pair_name],
-                            textposition="top center",
-                            marker=dict(size=12),
-                            hovertemplate=f"{pair_name}<br>重要度: %{{x:.1f}}<br>満足度: %{{y:.1f}}<extra></extra>"
-                        )
-                    )
+                    data_points.append({
+                        'name': pair_name,
+                        'importance': valid_data[importance_col].mean(),
+                        'satisfaction': valid_data[satisfaction_col].mean()
+                    })
             
-            # 軸の設定
-            fig.update_layout(
-                xaxis=dict(title='重要度', range=[2.0, 3.2]),
-                yaxis=dict(title='満足度', range=[2.0, 3.6]),
-                width=800,
-                height=600,
-                showlegend=True
-            )
-            
-            # 一時ファイルとして保存
-            temp_path = f"temp_scatter_{i}.png"
-            pio.write_image(fig, temp_path)
-            is_elements.append(Image(temp_path, width=6*inch, height=6*inch))
-            os.remove(temp_path)
+            if data_points:
+                # データポイントをDataFrameに変換
+                plot_data = pd.DataFrame(data_points)
+                
+                # 散布図の生成
+                fig = self._create_scatter_plot(plot_data)
+                temp_path = f"temp_scatter_{i}.png"
+                fig.savefig(temp_path, dpi=300, bbox_inches='tight')
+                plt.close(fig)
+                is_elements.append(Image(temp_path, width=6*inch, height=6*inch))
+                os.remove(temp_path)
             
             elements.append(KeepTogether(is_elements))
 
