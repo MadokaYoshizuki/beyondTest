@@ -1,7 +1,7 @@
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
-from reportlab.platypus import Frame, PageTemplate
+from reportlab.platypus import Frame, PageTemplate, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, cm
 from reportlab.pdfgen import canvas
@@ -17,101 +17,85 @@ from datetime import datetime
 
 class PDFGenerator:
     def __init__(self):
-        # 日本語フォントの登録
+        # 日本語フォントの設定
         try:
-            font_path = "/nix/store/noto-fonts-cjk/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc"
-            pdfmetrics.registerFont(TTFont('NotoSans', font_path))
+            pdfmetrics.registerFont(TTFont('NotoSans', 'NotoSansCJKjp-Regular.ttf'))
         except:
-            # フォントが見つからない場合はデフォルトフォントを使用
-            st.warning("日本語フォントの読み込みに失敗しました。デフォルトフォントを使用します。")
-        
-    def _create_header_footer(self, canvas, doc):
-        """ヘッダーとフッターを描画"""
-        canvas.saveState()
-        
-        # ヘッダー
-        canvas.setFont('NotoSans', 8)
-        canvas.drawString(doc.leftMargin, doc.height + doc.topMargin + 10, "意識調査データ分析レポート")
-        canvas.drawString(doc.width + doc.leftMargin - 100, doc.height + doc.topMargin + 10,
-                         datetime.now().strftime("%Y年%m月%d日"))
-        
-        # フッター（ページ番号）
-        canvas.drawString(doc.width/2 + doc.leftMargin, doc.bottomMargin - 20,
-                         f"- {canvas.getPageNumber()} -")
-        
-        canvas.restoreState()
-        
-    def _create_title_page(self):
-        """タイトルページの要素を生成"""
-        elements = []
-        
-        # タイトル
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            fontName='NotoSans',
-            fontSize=24,
-            leading=30,
-            alignment=1,
-            spaceAfter=30
-        )
-        elements.append(Spacer(1, 2*inch))
-        elements.append(Paragraph("意識調査データ分析レポート", title_style))
-        
-        # 日付
-        date_style = ParagraphStyle(
-            'Date',
-            fontName='NotoSans',
-            fontSize=12,
-            alignment=1,
-            spaceAfter=1*inch
-        )
-        elements.append(Spacer(1, 1*inch))
-        elements.append(Paragraph(datetime.now().strftime("%Y年%m月%d日"), date_style))
-        
-        elements.append(PageBreak())
-        return elements
-        
-    def _create_toc(self):
-        """目次を生成"""
-        elements = []
-        
-        # 目次タイトル
-        toc_title_style = ParagraphStyle(
-            'TOCTitle',
-            fontName='NotoSans',
+            st.warning("日本語フォントが見つかりません。デフォルトフォントを使用します。")
+
+        # スタイルの設定
+        self.styles = getSampleStyleSheet()
+        self.styles.add(ParagraphStyle(
+            name='JapaneseParagraph',
+            fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
+            fontSize=10,
+            leading=14
+        ))
+        self.styles.add(ParagraphStyle(
+            name='Heading1',
+            fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
             fontSize=16,
             leading=20,
-            spaceAfter=20
-        )
-        elements.append(Paragraph("目次", toc_title_style))
-        
-        # 目次項目のスタイル
-        toc_item_style = ParagraphStyle(
-            'TOCItem',
-            fontName='NotoSans',
+            spaceBefore=20,
+            spaceAfter=10
+        ))
+        self.styles.add(ParagraphStyle(
+            name='Heading2',
+            fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
+            fontSize=14,
+            leading=18,
+            spaceBefore=15,
+            spaceAfter=8
+        ))
+        self.styles.add(ParagraphStyle(
+            name='Heading3',
+            fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
             fontSize=12,
-            leading=14,
-            leftIndent=20
-        )
-        
-        # 目次項目の追加
-        elements.append(Paragraph("1. 実施概要", toc_item_style))
-        elements.append(Paragraph("2. 数値分析結果", toc_item_style))
-        elements.append(Paragraph("3. 複数回答の分析", toc_item_style))
-        elements.append(Paragraph("4. 相関分析", toc_item_style))
-        
+            leading=16,
+            spaceBefore=10,
+            spaceAfter=5
+        ))
+
+
+    def _create_title_page(self):
+        """タイトルページの作成"""
+        elements = []
+        styles = self.styles
+
+        # タイトル
+        elements.append(Paragraph("意識調査 分析レポート", styles['Title']))
+        elements.append(Spacer(1, 2*cm))
+
+        # 日付
+        date = datetime.now().strftime("%Y年%m月%d日")
+        elements.append(Paragraph(f"作成日：{date}", styles['Normal']))
         elements.append(PageBreak())
+
         return elements
-        
+
+    def _create_toc(self):
+        """目次の作成"""
+        elements = []
+        styles = self.styles
+
+        elements.append(Paragraph("目次", styles['Heading1']))
+        elements.append(Spacer(1, 1*cm))
+        elements.append(Paragraph("1. 実施概要", styles['JapaneseParagraph']))
+        elements.append(Paragraph("2. 数値分析結果", styles['JapaneseParagraph']))
+        elements.append(Paragraph("3. 相関分析", styles['JapaneseParagraph']))
+        elements.append(Paragraph("4. 重要度満足度分析", styles['JapaneseParagraph']))
+        elements.append(PageBreak())
+
+        return elements
+
     def _create_heatmap(self, corr_data, column_names):
-        """ヒートマップを生成する内部メソッド"""
-        # 列名マッピングを適用
-        display_names = [column_names.get(col, col) for col in corr_data.columns]
+        """相関係数ヒートマップの作成"""
+        display_cols = [column_names.get(col, col) for col in corr_data.columns]
         
         fig = go.Figure(data=go.Heatmap(
             z=corr_data,
-            x=display_names,
-            y=display_names,
+            x=display_cols,
+            y=display_cols,
             colorscale='RdBu',
             text=[[f'{val:.2f}' for val in row] for row in corr_data.values],
             texttemplate='%{text}',
@@ -120,19 +104,10 @@ class PDFGenerator:
         ))
         
         fig.update_layout(
-            width=1000,
-            height=1000,
-            title={
-                'text': "相関ヒートマップ",
-                'x': 0.5,
-                'xanchor': 'center',
-                'font': {'size': 24}
-            },
-            xaxis_title="設問項目",
-            yaxis_title="設問項目",
+            width=800,
+            height=800,
             xaxis={'tickangle': 45},
-            margin=dict(t=100, l=100, r=100, b=100),
-            font=dict(size=12)
+            yaxis={'tickangle': 0}
         )
         
         return fig
@@ -169,118 +144,26 @@ class PDFGenerator:
         
         return fig
 
-    def generate_pdf(self, dfs, config_manager, visualizer):
-        if not dfs:
-            st.error("PDFを生成するにはデータが必要です。")
-            return None
-            
-        output_path = "survey_analysis_report.pdf"
-        
-        # ドキュメントの基本設定
-        doc = SimpleDocTemplate(
-            output_path,
-            pagesize=A4,
-            leftMargin=2*cm,
-            rightMargin=2*cm,
-            topMargin=2.5*cm,
-            bottomMargin=2.5*cm
-        )
-        
-        # ヘッダー・フッター付きのページテンプレート作成
-        frame = Frame(
-            doc.leftMargin,
-            doc.bottomMargin,
-            doc.width,
-            doc.height,
-            id='normal'
-        )
-        template = PageTemplate(
-            id='header_footer',
-            frames=frame,
-            onPage=self._create_header_footer
-        )
-        doc.addPageTemplates([template])
-        
-        # スタイルの設定
-        styles = getSampleStyleSheet()
-        
-        # カスタムスタイルの追加
-        styles.add(ParagraphStyle(
-            name='JapaneseParagraph',
-            fontName='NotoSans',
-            fontSize=10,
-            leading=14
-        ))
-        
-        styles.add(ParagraphStyle(
-            name='Heading1',
-            fontName='NotoSans',
-            fontSize=16,
-            leading=20,
-            spaceBefore=20,
-            spaceAfter=10
-        ))
-        
-        styles.add(ParagraphStyle(
-            name='Heading2',
-            fontName='NotoSans',
-            fontSize=14,
-            leading=18,
-            spaceBefore=15,
-            spaceAfter=8
-        ))
-        
-        elements = []
-
-        # タイトルページの追加
-        elements.extend(self._create_title_page())
-        
-        # 目次の追加
-        elements.extend(self._create_toc())
-        
-        # 実施概要
-        elements.append(Paragraph("1. 実施概要", styles['Heading1']))
-        elements.append(Paragraph(
-            "本レポートは、意識調査の分析結果をまとめたものです。",
-            styles['JapaneseParagraph']
-        ))
-        elements.append(Spacer(1, 0.5*cm))
-        
-        for i, df in enumerate(dfs):
-            elements.append(Paragraph(
-                f"第{i+1}回調査: {len(df)}件の回答",
-                styles['JapaneseParagraph']
-            ))
-        elements.append(Spacer(1, 1*cm))
-
-        # 列名マッピングの取得
+    def _add_numeric_analysis_section(self, elements, dfs, config_manager, section_number, options):
+        """数値分析のセクションを追加"""
+        styles = self.styles
         column_names = config_manager.config.get('column_names', {})
-
-        # 数値分析結果
-        elements.append(Paragraph("2. 数値分析結果", styles['Heading2']))
+        
+        elements.append(Paragraph(f"{section_number}. 数値分析結果", styles['Heading1']))
         elements.append(Paragraph(
             "各設問項目の数値データについて、基本統計量を算出し分析を行いました。",
             styles['JapaneseParagraph']
         ))
         elements.append(Spacer(1, 0.5*cm))
-        
-        # 値グループ分析
-        if value_groups := config_manager.config.get('value_groups', {}):
-            elements.append(Paragraph("値グループ分析", styles['Heading3']))
-            elements.append(Paragraph(
-                "設定された値グループに基づいて、回答を分類し分析を行いました。",
-                styles['JapaneseParagraph']
-            ))
-            elements.append(Spacer(1, 0.5*cm))
-        
+
         for i, df in enumerate(dfs):
-            elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
+            dataset_elements = []
+            dataset_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
             
             # 基本統計量
             numeric_df = df.select_dtypes(include=['number'])
             if not numeric_df.empty:
                 stats = numeric_df.describe()
-                # 列名を表示用に変換
                 display_cols = [column_names.get(col, col) for col in stats.columns]
                 table_data = [["統計量"] + display_cols]
                 for idx in stats.index:
@@ -292,86 +175,45 @@ class PDFGenerator:
                     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'HeiseiKakuGo-W5'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 12),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('FONTNAME', (0, 0), (-1, 0), 'NotoSans'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
                     ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ]))
-                elements.append(table)
-                elements.append(Spacer(1, 20))
-
-            # 複数回答の分析
-            elements.append(Paragraph("3. 複数回答の分析", styles['Heading1']))
-            elements.append(Paragraph(
-                "複数回答方式の設問について、回答の分布と傾向を分析しました。",
-                styles['JapaneseParagraph']
-            ))
-            elements.append(Spacer(1, 0.5*cm))
+                dataset_elements.append(table)
+                dataset_elements.append(Spacer(1, 0.5*cm))
             
-            multiple_choice_cols = []
-            for col in df.columns:
-                if not pd.api.types.is_numeric_dtype(df[col]):
-                    values = df[col].fillna('').astype(str)
-                    if values.str.contains(',').any():
-                        multiple_choice_cols.append(col)
+            elements.append(KeepTogether(dataset_elements))
 
-            if multiple_choice_cols:
-                elements.append(Paragraph("複数回答の分析", styles['Heading3']))
-                for col in multiple_choice_cols:
-                    display_name = column_names.get(col, col)
-                    elements.append(Paragraph(f"質問: {display_name}", styles['JapaneseParagraph']))
-                    values = df[col].fillna('').astype(str).str.split(',').explode()
-                    counts = values.value_counts().sort_index()
-                    
-                    # 棒グラフの生成
-                    fig = self._create_bar_chart(
-                        counts,
-                        f"{display_name}の回答分布",
-                        "選択肢",
-                        "回答数"
-                    )
-                    temp_path = f"temp_bar_{i}_{col}.png"
-                    pio.write_image(fig, temp_path)
-                    elements.append(Image(temp_path, width=6*inch, height=3*inch))
-                    os.remove(temp_path)
-                    
-                    # 回答の集計表を追加
-                    table_data = [["選択肢", "回答数", "割合(%)"]]
-                    total = counts.sum()
-                    for answer, count in counts.items():
-                        percentage = (count / total) * 100
-                        table_data.append([answer, str(count), f"{percentage:.1f}"])
-                    
-                    table = Table(table_data)
-                    table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('FONTNAME', (0, 0), (-1, 0), 'HeiseiKakuGo-W5'),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ]))
-                    elements.append(table)
-                    elements.append(Spacer(1, 20))
-
-        # 相関分析
-        elements.append(Paragraph("相関分析", styles['Heading1']))
+    def _add_correlation_analysis_section(self, elements, dfs, config_manager, section_number, options):
+        """相関分析のセクションを追加"""
+        styles = self.styles
+        column_names = config_manager.config.get('column_names', {})
         
+        elements.append(Paragraph(f"{section_number}. 相関分析", styles['Heading1']))
+        elements.append(Paragraph(
+            "各設問項目間の相関関係を分析しました。",
+            styles['JapaneseParagraph']
+        ))
+        elements.append(Spacer(1, 0.5*cm))
+
         for i, df in enumerate(dfs):
-            elements.append(Paragraph(f"データセット {i+1} の相関分析", styles['Heading2']))
+            correlation_elements = []
+            correlation_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
             
-            # ヒートマップの生成
             numeric_columns = df.select_dtypes(include=['number']).columns
             if not numeric_columns.empty:
                 corr_data = df[numeric_columns].corr()
+                
+                # ヒートマップの生成
                 fig = self._create_heatmap(corr_data, column_names)
                 temp_path = f"temp_heatmap_{i}.png"
                 pio.write_image(fig, temp_path)
-                elements.append(Image(temp_path, width=6*inch, height=6*inch))
+                correlation_elements.append(Image(temp_path, width=6*inch, height=6*inch))
                 os.remove(temp_path)
                 
-                # 相関係数の表を追加
+                # 相関係数の表
                 display_cols = [column_names.get(col, col) for col in corr_data.columns]
-                elements.append(Paragraph("相関係数", styles['Heading3']))
+                correlation_elements.append(Paragraph("相関係数", styles['Heading3']))
                 table_data = [[""] + display_cols]
                 for idx, display_idx in zip(corr_data.index, display_cols):
                     row = [display_idx] + [f"{x:.2f}" for x in corr_data.loc[idx]]
@@ -382,13 +224,141 @@ class PDFGenerator:
                     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'HeiseiKakuGo-W5'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'NotoSans'),
                     ('FONTSIZE', (0, 0), (-1, 0), 10),
                     ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ]))
-                elements.append(table)
+                correlation_elements.append(table)
+                correlation_elements.append(Spacer(1, 0.5*cm))
             
-            elements.append(Spacer(1, 20))
+            elements.append(KeepTogether(correlation_elements))
+
+    def _add_importance_satisfaction_section(self, elements, dfs, config_manager, section_number):
+        """重要度-満足度分析のセクションを追加"""
+        styles = self.styles
+        
+        elements.append(Paragraph(f"{section_number}. 重要度-満足度分析", styles['Heading1']))
+        elements.append(Paragraph(
+            "各項目の重要度と満足度の関係を分析しました。",
+            styles['JapaneseParagraph']
+        ))
+        elements.append(Spacer(1, 0.5*cm))
+
+        for i, df in enumerate(dfs):
+            is_elements = []
+            is_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
+            
+            # 重要度-満足度の散布図を生成
+            fig = go.Figure()
+            pairs = config_manager.config.get('importance_satisfaction_pairs', {})
+            
+            for pair_name, pair_data in pairs.items():
+                importance_col = pair_data['importance']
+                satisfaction_col = pair_data['satisfaction']
+                
+                valid_data = df[[importance_col, satisfaction_col]].dropna()
+                if not valid_data.empty:
+                    importance_mean = valid_data[importance_col].mean()
+                    satisfaction_mean = valid_data[satisfaction_col].mean()
+                    
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[importance_mean],
+                            y=[satisfaction_mean],
+                            mode='markers+text',
+                            name=pair_name,
+                            text=[pair_name],
+                            textposition="top center",
+                            marker=dict(size=12),
+                            hovertemplate=f"{pair_name}<br>重要度: %{{x:.1f}}<br>満足度: %{{y:.1f}}<extra></extra>"
+                        )
+                    )
+            
+            # 軸の設定
+            fig.update_layout(
+                xaxis=dict(title='重要度', range=[2.0, 3.2]),
+                yaxis=dict(title='満足度', range=[2.0, 3.6]),
+                width=800,
+                height=600,
+                showlegend=True
+            )
+            
+            # 一時ファイルとして保存
+            temp_path = f"temp_scatter_{i}.png"
+            pio.write_image(fig, temp_path)
+            is_elements.append(Image(temp_path, width=6*inch, height=6*inch))
+            os.remove(temp_path)
+            
+            elements.append(KeepTogether(is_elements))
+
+    def generate_pdf(self, dfs, config_manager, visualizer, settings_name="デフォルト設定"):
+        """PDFレポートを生成"""
+        if not dfs:
+            st.error("PDFを生成するにはデータが必要です。")
+            return None
+
+        # 設定の取得
+        pdf_settings = config_manager.config.get('pdf_settings', {})
+        if settings_name not in pdf_settings:
+            st.error(f"PDF設定 '{settings_name}' が見つかりません。")
+            return None
+
+        settings = pdf_settings[settings_name]
+        output_path = "survey_analysis_report.pdf"
+
+        # ドキュメントの基本設定
+        doc = SimpleDocTemplate(
+            output_path,
+            pagesize=A4,
+            rightMargin=2.5*cm,
+            leftMargin=2.5*cm,
+            topMargin=2.5*cm,
+            bottomMargin=2.5*cm
+        )
+
+        # 要素の準備
+        elements = []
+        
+        # タイトルページと目次の追加
+        elements.extend(self._create_title_page())
+        elements.extend(self._create_toc())
+        
+        # 実施概要（常に含める）
+        overview_elements = []
+        overview_elements.append(Paragraph("1. 実施概要", self.styles['Heading1']))
+        overview_elements.append(Paragraph(
+            "本レポートは、意識調査の分析結果をまとめたものです。",
+            self.styles['JapaneseParagraph']
+        ))
+        overview_elements.append(Spacer(1, 0.5*cm))
+        
+        for i, df in enumerate(dfs):
+            overview_elements.append(Paragraph(
+                f"第{i+1}回調査: {len(df)}件の回答",
+                self.styles['JapaneseParagraph']
+            ))
+        overview_elements.append(Spacer(1, 1*cm))
+        elements.append(KeepTogether(overview_elements))
+
+        # 設定に基づいてセクションを生成
+        section_number = 2
+        for section in settings['sections']:
+            if section['type'] == '数値表':
+                self._add_numeric_analysis_section(
+                    elements, dfs, config_manager, 
+                    section_number, section['options']
+                )
+            elif section['type'] == '相関分析':
+                self._add_correlation_analysis_section(
+                    elements, dfs, config_manager,
+                    section_number, section['options']
+                )
+            elif section['type'] == '重要度満足度':
+                self._add_importance_satisfaction_section(
+                    elements, dfs, config_manager,
+                    section_number
+                )
+            section_number += 1
 
         # PDFの生成
         doc.build(elements)

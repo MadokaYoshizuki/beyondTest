@@ -100,5 +100,33 @@
             "importance": "Q.17",
             "satisfaction": "Q.19"
         }
+    },
+    "pdf_settings": {
+        "デフォルト設定": {
+            "title": "基本レポート",
+            "sections": [
+                {
+                    "type": "数値表",
+                    "title": "属性別平均値一覧",
+                    "options": {
+                        "show_group_analysis": true,
+                        "show_question_analysis": true
+                    }
+                },
+                {
+                    "type": "相関分析",
+                    "title": "質問間の相関分析",
+                    "options": {
+                        "mode": "質問間の相関",
+                        "group": "すべての質問"
+                    }
+                },
+                {
+                    "type": "重要度満足度",
+                    "title": "重要度-満足度分析",
+                    "options": {}
+                }
+            ]
+        }
     }
 }
