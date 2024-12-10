@@ -219,7 +219,7 @@ def main():
                             if 'question_group_items' in st.session_state:
                                 st.session_state.pop('question_group_items')
                             # 保存後にページを再読み込み
-                            st.experimental_rerun()
+                            st.rerun()
                         except Exception as e:
                             st.error(f"グループの保存中にエラーが発生しました: {str(e)}")
                     else:
