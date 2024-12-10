@@ -374,10 +374,18 @@ class Visualizer:
             results_score = results_score[column_order]
         
         st.write("質問ごとの分析結果")
+        # 行と列を入れ替えて表示
+        results_mean_t = results_mean.T
+        results_score_t = results_score.T
+        
+        # インデックス名を「属性」に設定
+        results_mean_t.index.name = '属性'
+        results_score_t.index.name = '属性'
+        
         st.write("平均値")
-        st.dataframe(results_mean)
+        st.dataframe(results_mean_t)
         st.write("100点換算")
-        st.dataframe(results_score)
+        st.dataframe(results_score_t)
         
         # 2. 質問グループごとの分析
         if question_groups:
@@ -441,9 +449,14 @@ class Visualizer:
                 group_score_df = group_score_df[column_order]
             
             st.write("平均値")
-            st.dataframe(group_mean_df)
+            group_mean_df_t = group_mean_df.T
+            group_mean_df_t.index.name = '属性'
+            st.dataframe(group_mean_df_t)
+            
             st.write("100点換算")
-            st.dataframe(group_score_df)
+            group_score_df_t = group_score_df.T
+            group_score_df_t.index.name = '属性'
+            st.dataframe(group_score_df_t)
         
         # 3. 値グループごとの分析
         if value_groups:
@@ -492,7 +505,9 @@ class Visualizer:
                         }).T
                         
                         st.write(f"{metric}")
-                        st.dataframe(result_df)
+                        result_df_t = result_df.T
+                        result_df_t.index.name = '属性'
+                        st.dataframe(result_df_t)
         
         # Excelファイルの保存
         excel_data = {
