@@ -170,15 +170,15 @@ class Visualizer:
         self._display_correlation_heatmap(df, column_names, question_groups)
 
         # 2. 回答の件数と構成比の帯グラフ
-        st.write("2. 回答の分布")
+        st.write("**2. 回答の分布**")
         self._display_value_distribution(df, column_names)
 
         # 3. 質問グループ間の散布図
-        st.write("3. 質問グループ間の散布図")
+        st.write("**3. 質問グループ間の散布図**")
         self._display_scatter_plot(df, column_names, question_groups)
 
         # 4. 重要度-満足度分析
-        st.write("4. 重要度-満足度分析")
+        st.write("**4. 重要度-満足度分析**")
         self._display_importance_satisfaction_plot(df, column_names,
                                                    config_manager)
 
@@ -311,20 +311,22 @@ class Visualizer:
         for pair_name, pair_data in importance_satisfaction_pairs.items():
             importance_col = pair_data['importance']
             satisfaction_col = pair_data['satisfaction']
-            
+
             # 数値データのみを抽出
             valid_data = df[[importance_col, satisfaction_col]].dropna()
-            
+
             if not valid_data.empty:
                 importance_mean = valid_data[importance_col].mean()
                 satisfaction_mean = valid_data[satisfaction_col].mean()
                 importance_means.append(importance_mean)
                 satisfaction_means.append(satisfaction_mean)
-        
+
         # 全体の平均値を計算（小数点第1位で丸める）
-        overall_importance_mean = round(sum(importance_means) / len(importance_means), 1)
-        overall_satisfaction_mean = round(sum(satisfaction_means) / len(satisfaction_means), 1)
-        
+        overall_importance_mean = round(
+            sum(importance_means) / len(importance_means), 1)
+        overall_satisfaction_mean = round(
+            sum(satisfaction_means) / len(satisfaction_means), 1)
+
         print(f"Debug - 重要度の平均値: {overall_importance_mean}")
         print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
         print(f"Debug - 重要度の値一覧: {importance_means}")
@@ -336,90 +338,79 @@ class Visualizer:
 
         # 平均値の点線を追加
         # 満足度の平均値（横線）
-        fig.add_shape(
-            type="line",
-            x0=x_min,
-            x1=x_max,
-            y0=overall_satisfaction_mean,
-            y1=overall_satisfaction_mean,
-            xref="x",
-            yref="y",
-            line=dict(color="orange", width=1, dash="dot")
-        )
+        fig.add_shape(type="line",
+                      x0=x_min,
+                      x1=x_max,
+                      y0=overall_satisfaction_mean,
+                      y1=overall_satisfaction_mean,
+                      xref="x",
+                      yref="y",
+                      line=dict(color="orange", width=1, dash="dot"))
         # 重要度の平均値（縦線）
-        fig.add_shape(
-            type="line",
-            x0=overall_importance_mean,
-            x1=overall_importance_mean,
-            y0=y_min,
-            y1=y_max,
-            xref="x",
-            yref="y",
-            line=dict(color="orange", width=1, dash="dot")
-        )
+        fig.add_shape(type="line",
+                      x0=overall_importance_mean,
+                      x1=overall_importance_mean,
+                      y0=y_min,
+                      y1=y_max,
+                      xref="x",
+                      yref="y",
+                      line=dict(color="orange", width=1, dash="dot"))
 
         # 平均値のテキストを個別のアノテーションとして追加
-        fig.add_annotation(
-            text=f"満足度平均：{overall_satisfaction_mean:.1f}",
-            x=x_min + 0.05,
-            y=overall_satisfaction_mean,
-            xref="x",
-            yref="y",
-            showarrow=False,
-            xanchor="left",
-            yanchor="middle"
-        )
-        fig.add_annotation(
-            text=f"重要度平均：{overall_importance_mean:.1f}",
-            x=overall_importance_mean,
-            y=y_min + 0.05,
-            xref="x",
-            yref="y",
-            showarrow=False,
-            xanchor="center",
-            yanchor="bottom"
-        )
+        fig.add_annotation(text=f"満足度平均：{overall_satisfaction_mean:.1f}",
+                           x=x_min,
+                           y=overall_satisfaction_mean + 0.04,
+                           xref="x",
+                           yref="y",
+                           showarrow=False,
+                           xanchor="left",
+                           yanchor="middle")
+        fig.add_annotation(text=f"重要度平均：{overall_importance_mean:.1f}",
+                           x=overall_importance_mean + 0.04,
+                           y=y_min,
+                           xref="x",
+                           yref="y",
+                           showarrow=False,
+                           xanchor="left",
+                           yanchor="bottom")
 
         # レイアウトの設定
         fig.update_layout(
-            title='重要度-満足度分析',
-            xaxis=dict(
-                title='重要度',
-                range=[x_min, x_max],
-                showgrid=True,
-                gridwidth=1,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                zeroline=False,
-                showline=True,
-                linewidth=1,
-                linecolor='rgba(128, 128, 128, 1)'
-            ),
-            yaxis=dict(
-                title='満足度',
-                range=[y_min, y_max],
-                showgrid=True,
-                gridwidth=1,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                zeroline=False,
-                showline=True,
-                linewidth=1,
-                linecolor='rgba(128, 128, 128, 1)'
-            ),
+            # title='重要度-満足度分析',
+            xaxis=dict(title='重要度',
+                       range=[x_min, x_max],
+                       showgrid=True,
+                       gridwidth=1,
+                       gridcolor='rgba(128, 128, 128, 0.2)',
+                       zeroline=False,
+                       showline=True,
+                       linewidth=1,
+                       linecolor='rgba(128, 128, 128, 1)'),
+            yaxis=dict(title='満足度',
+                       range=[y_min, y_max],
+                       showgrid=True,
+                       gridwidth=1,
+                       gridcolor='rgba(128, 128, 128, 0.2)',
+                       zeroline=False,
+                       showline=True,
+                       linewidth=1,
+                       linecolor='rgba(128, 128, 128, 1)'),
             width=800,
             height=600,
             showlegend=True,
             plot_bgcolor='white',
-            # プロットエリアの枠線を追加
-            shapes=[
-                dict(type='rect',
-                     xref='paper',
-                     yref='paper',
-                     x0=0,
-                     y0=0,
-                     x1=1,
-                     y1=1,
-                     line=dict(color='rgba(128, 128, 128, 1)', width=1))
-            ])
+            # # プロットエリアの枠線を追加
+            # shapes=[
+            #     dict(type='rect',
+            #          xref='paper',
+            #          yref='paper',
+            #          x0=0,
+            #          y0=0,
+            #          x1=1,
+            #          y1=1,
+            #          line=dict(color='rgba(128, 128, 128, 1)', width=1))
+            # ]
+        )
 
         # ラベルの位置を自動調整
         fig.update_traces(textposition='top center',
@@ -484,7 +475,7 @@ class Visualizer:
                               annotation_text=f"平均：{x_mean:.1f}")
 
                 fig.update_layout(
-                    title=f"{x_axis}と{y_axis}の相関",
+                    # title=f"{x_axis}と{y_axis}の相関",
                     height=500,
                     xaxis=dict(
                         title=f"{x_axis}の平均値",
