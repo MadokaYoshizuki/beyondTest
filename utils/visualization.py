@@ -328,9 +328,11 @@ class Visualizer:
         print(f"Debug - 重要度の値一覧: {all_importance_values}")
         print(f"Debug - 満足度の値一覧: {all_satisfaction_values}")
 
-        # 軸の範囲を設定
-        x_min, x_max = 2.0, 3.2  # 重要度の範囲
-        y_min, y_max = 2.0, 3.6  # 満足度の範囲
+        # データから軸の範囲を計算
+        x_min = min(all_importance_values) - 0.2  # 重要度の最小値
+        x_max = max(all_importance_values) + 0.2  # 重要度の最大値
+        y_min = min(all_satisfaction_values) - 0.2  # 満足度の最小値
+        y_max = max(all_satisfaction_values) + 0.2  # 満足度の最大値
 
         # 平均値の点線を追加
         # 満足度の平均値（横線）
