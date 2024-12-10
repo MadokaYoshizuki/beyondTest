@@ -218,8 +218,13 @@ class Visualizer:
                 else:
                     trace.showlegend = False
             
+            # レイアウトの設定
             fig.update_layout(
-                title="全質問の回答分布（単一回答のみ）",
+                title=dict(
+                    text="全質問の回答分布（単一回答のみ）",
+                    x=0.5,
+                    xanchor='center'
+                ),
                 barmode='stack',
                 showlegend=True,
                 xaxis=dict(
@@ -234,7 +239,8 @@ class Visualizer:
                     title="質問項目",
                     ticktext=y_labels,
                     tickvals=y_positions,
-                    automargin=True
+                    automargin=True,
+                    side='left'
                 ),
                 height=max(400, len(numeric_columns) * 40),  # 質問数に応じて高さを調整
                 margin=dict(l=300, r=50, t=50, b=50),  # マージンの調整
@@ -244,7 +250,8 @@ class Visualizer:
                     yanchor="top",
                     y=1,
                     xanchor="left",
-                    x=1.02
+                    x=1.02,
+                    font=dict(size=10)
                 ),
                 plot_bgcolor='white',
                 paper_bgcolor='white',
@@ -252,9 +259,10 @@ class Visualizer:
                 uniformtext=dict(mode="hide", minsize=8)  # テキストサイズの自動調整
             )
             
+            # グラフを一度だけ表示
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("数値データが見つかりませんでした。")
+            st.info("単一回答の数値データが見つかりませんでした。")
 
     def _display_scatter_plot(self, df, column_names):
         numeric_columns = df.select_dtypes(include=['number']).columns
