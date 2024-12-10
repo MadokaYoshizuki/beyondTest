@@ -309,7 +309,7 @@ class Visualizer:
         overall_satisfaction_mean = sum(all_satisfaction_means) / len(all_satisfaction_means)
         
         # 平均値の点線を追加
-        # 重要度の平均値（縦線）
+        # 満足度の平均値（横線）
         fig.add_hline(
             y=overall_satisfaction_mean,
             line_dash="dash",
@@ -317,7 +317,7 @@ class Visualizer:
             line_width=1,
             annotation_text=f"満足度平均：{overall_satisfaction_mean:.1f}"
         )
-        # 満足度の平均値（横線）
+        # 重要度の平均値（縦線）
         fig.add_vline(
             x=overall_importance_mean,
             line_dash="dash",
