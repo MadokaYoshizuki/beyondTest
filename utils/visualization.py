@@ -312,18 +312,32 @@ class Visualizer:
         # 満足度の平均値（横線）
         fig.add_hline(
             y=overall_satisfaction_mean,
-            line_dash="dash",
-            line_color="orange",
-            line_width=1,
-            annotation_text=f"満足度平均：{overall_satisfaction_mean:.1f}"
+            line=dict(
+                color="orange",
+                width=1,
+                dash="dot"
+            ),
+            annotation_text=f"満足度平均：{overall_satisfaction_mean:.1f}",
+            annotation=dict(
+                xref="paper",
+                x=0,  # 左端に配置
+                xanchor="right"
+            )
         )
         # 重要度の平均値（縦線）
         fig.add_vline(
             x=overall_importance_mean,
-            line_dash="dash",
-            line_color="orange",
-            line_width=1,
-            annotation_text=f"重要度平均：{overall_importance_mean:.1f}"
+            line=dict(
+                color="orange",
+                width=1,
+                dash="dot"
+            ),
+            annotation_text=f"重要度平均：{overall_importance_mean:.1f}",
+            annotation=dict(
+                yref="paper",
+                y=0,  # 下端に配置
+                yanchor="top"
+            )
         )
         
         # レイアウトの設定
