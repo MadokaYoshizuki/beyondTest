@@ -288,6 +288,72 @@ def main():
             else:
                 st.info("データを読み込むと、満点の設定が可能になります。")
 
+        # 重要度-満足度分析の設定
+        with st.expander("重要度-満足度分析の設定"):
+            if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                # 現在の設定を取得
+                current_pairs = st.session_state.config_manager.config.get('importance_satisfaction_pairs', {})
+                column_names = st.session_state.config_manager.config.get('column_names', {})
+                
+                st.write("重要度と満足度の対応関係を設定")
+                
+                # 数値列のみを対象とする
+                numeric_columns = [col for col in st.session_state.data_processor.dfs[0].columns 
+                               if pd.api.types.is_numeric_dtype(st.session_state.data_processor.dfs[0][col])]
+                
+                # 既存のペアの表示と削除機能
+                if current_pairs:
+                    st.write("登録済みの対応関係")
+                    selected_pairs = []
+                    for importance, satisfaction in current_pairs.items():
+                        col1, col2, col3 = st.columns([0.1, 0.7, 0.2])
+                        with col1:
+                            if st.checkbox("", key=f"delete_pair_{importance}_{satisfaction}"):
+                                selected_pairs.append((importance, satisfaction))
+                        with col2:
+                            imp_name = column_names.get(importance, importance)
+                            sat_name = column_names.get(satisfaction, satisfaction)
+                            st.caption(f"重要度: {imp_name} → 満足度: {sat_name}")
+                    
+                    if selected_pairs:
+                        if st.button("選択した対応関係を削除"):
+                            new_pairs = {k: v for k, v in current_pairs.items() 
+                                       if (k, v) not in selected_pairs}
+                            st.session_state.config_manager.save_importance_satisfaction_pairs(new_pairs)
+                            st.success("選択した対応関係を削除しました")
+                            st.rerun()
+                
+                # 新規ペアの追加
+                st.write("新規対応関係の追加")
+                col1, col2 = st.columns(2)
+                with col1:
+                    importance = st.selectbox(
+                        "重要度の質問:",
+                        numeric_columns,
+                        format_func=lambda x: column_names.get(x, x),
+                        key="importance_question"
+                    )
+                with col2:
+                    satisfaction = st.selectbox(
+                        "満足度の質問:",
+                        numeric_columns,
+                        format_func=lambda x: column_names.get(x, x),
+                        key="satisfaction_question"
+                    )
+                
+                if st.button("対応関係を保存"):
+                    if importance and satisfaction:
+                        if importance != satisfaction:
+                            new_pairs = dict(current_pairs)
+                            new_pairs[importance] = satisfaction
+                            st.session_state.config_manager.save_importance_satisfaction_pairs(new_pairs)
+                            st.success("対応関係を保存しました")
+                            st.rerun()
+                        else:
+                            st.error("重要度と満足度には異なる質問を選択してください")
+            else:
+                st.info("データを読み込むと、重要度-満足度分析の設定が可能になります。")
+
         with st.expander("値グループ化の設定"):
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
                 # 列名のマッピングを取得

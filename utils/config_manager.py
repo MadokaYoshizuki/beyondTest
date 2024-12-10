@@ -15,7 +15,8 @@ class ConfigManager:
             'attributes': [],
             'question_groups': {},
             'value_mappings': {},
-            'value_groups': {}
+            'value_groups': {},
+            'importance_satisfaction_pairs': {}  # 重要度と満足度の対応関係を保存
         }
 
     def save_config(self):
@@ -46,4 +47,9 @@ class ConfigManager:
         if 'value_groups' not in self.config:
             self.config['value_groups'] = {}
         self.config['value_groups'][column] = groups
+    def save_importance_satisfaction_pairs(self, pairs):
+        """重要度と満足度の対応関係を保存する"""
+        self.config['importance_satisfaction_pairs'] = pairs
+        self.save_config()
+
         self.save_config()

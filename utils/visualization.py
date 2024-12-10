@@ -178,6 +178,10 @@ class Visualizer:
         st.write("3. 質問グループ間の散布図")
         self._display_scatter_plot(df, column_names, question_groups)
 
+        # 4. 重要度-満足度分析
+        st.write("4. 重要度-満足度分析")
+        self._display_importance_satisfaction_plot(df, column_names, config_manager)
+
     def _display_correlation_heatmap(self, df, column_names, question_groups=None):
         numeric_columns = df.select_dtypes(include=['number']).columns
         if not numeric_columns.empty:
@@ -256,6 +260,112 @@ class Visualizer:
         else:
             st.info("数値データが見つかりませんでした。")
 
+    def _display_importance_satisfaction_plot(self, df, column_names, config_manager):
+        """重要度-満足度分析の散布図を表示"""
+        importance_satisfaction_pairs = config_manager.config.get('importance_satisfaction_pairs', {})
+        
+        if not importance_satisfaction_pairs:
+            st.info("重要度-満足度の対応関係が設定されていません。")
+            return
+            
+        for importance_col, satisfaction_col in importance_satisfaction_pairs.items():
+            # 列名の表示用テキストを取得
+            importance_name = column_names.get(importance_col, importance_col)
+            satisfaction_name = column_names.get(satisfaction_col, satisfaction_col)
+            
+            # 数値データのみを抽出
+            valid_data = df[[importance_col, satisfaction_col]].dropna()
+            
+            if not valid_data.empty:
+                # 平均値を計算
+                importance_mean = valid_data[importance_col].mean()
+                satisfaction_mean = valid_data[satisfaction_col].mean()
+                
+                # 散布図を作成
+                fig = go.Figure()
+                
+                # データポイントの追加
+                fig.add_trace(go.Scatter(
+                    x=valid_data[importance_col],
+                    y=valid_data[satisfaction_col],
+                    mode='markers',
+                    name='回答',
+                    marker=dict(
+                        color='rgb(55, 83, 109)',
+                        size=8
+                    )
+                ))
+                
+                # X軸の平均値の線を追加
+                fig.add_shape(
+                    type='line',
+                    x0=importance_mean,
+                    x1=importance_mean,
+                    y0=valid_data[satisfaction_col].min(),
+                    y1=valid_data[satisfaction_col].max(),
+                    line=dict(
+                        color='orange',
+                        width=1,
+                        dash='dot'
+                    )
+                )
+                
+                # Y軸の平均値の線を追加
+                fig.add_shape(
+                    type='line',
+                    x0=valid_data[importance_col].min(),
+                    x1=valid_data[importance_col].max(),
+                    y0=satisfaction_mean,
+                    y1=satisfaction_mean,
+                    line=dict(
+                        color='orange',
+                        width=1,
+                        dash='dot'
+                    )
+                )
+                
+                # 平均値のテキストを追加
+                fig.add_annotation(
+                    x=importance_mean,
+                    y=valid_data[satisfaction_col].min(),
+                    text=f'平均：{importance_mean:.1f}',
+                    showarrow=False,
+                    yshift=-40
+                )
+                fig.add_annotation(
+                    x=valid_data[importance_col].min(),
+                    y=satisfaction_mean,
+                    text=f'平均：{satisfaction_mean:.1f}',
+                    showarrow=False,
+                    xshift=-40
+                )
+                
+                # レイアウトの設定
+                fig.update_layout(
+                    title=f'{importance_name}と{satisfaction_name}の相関',
+                    xaxis=dict(
+                        title=importance_name,
+                        showgrid=True,
+                        gridwidth=1,
+                        gridcolor='rgba(128, 128, 128, 0.2)',
+                        zeroline=False
+                    ),
+                    yaxis=dict(
+                        title=satisfaction_name,
+                        showgrid=True,
+                        gridwidth=1,
+                        gridcolor='rgba(128, 128, 128, 0.2)',
+                        zeroline=False
+                    ),
+                    width=800,
+                    height=600,
+                    showlegend=True,
+                    plot_bgcolor='white'
+                )
+                
+                st.plotly_chart(fig)
+            else:
+                st.warning(f"{importance_name}と{satisfaction_name}の有効なデータがありません。")
     def _display_scatter_plot(self, df, column_names, question_groups=None):
         if not question_groups:
             st.info("質問グループが設定されていません。散布図を表示するには質問グループの設定が必要です。")
