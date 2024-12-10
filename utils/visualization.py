@@ -121,12 +121,13 @@ class Visualizer:
                 for group_name, questions in question_groups.items():
                     numeric_questions = [q for q in questions if q in numeric_columns]
                     if numeric_questions:
-                        group_means[group_name] = df[numeric_questions].mean().mean()
+                        # 各質問の回答の平均値をグループの特徴ベクトルとして使用
+                        group_means[group_name] = df[numeric_questions].mean()
                 
-                # 相関係数行列の作成
+                # グループ間の相関係数行列を作成
                 group_names = list(group_means.keys())
-                group_values = pd.DataFrame({name: [val] for name, val in group_means.items()})
-                corr_data = group_values.T.corr()
+                group_values = pd.DataFrame(group_means).fillna(0)  # 欠損値を0で埋める
+                corr_data = group_values.corr()
                 
                 fig = go.Figure(data=go.Heatmap(
                     z=corr_data,
