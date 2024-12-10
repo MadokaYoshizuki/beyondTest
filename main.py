@@ -305,26 +305,34 @@ def main():
                 if current_pairs:
                     st.write("登録済みの対応関係")
                     selected_pairs = []
-                    for importance, satisfaction in current_pairs.items():
+                    for pair_name, pair_data in current_pairs.items():
                         col1, col2, col3 = st.columns([0.1, 0.7, 0.2])
                         with col1:
-                            if st.checkbox("", key=f"delete_pair_{importance}_{satisfaction}"):
-                                selected_pairs.append((importance, satisfaction))
+                            if st.checkbox("", key=f"delete_pair_{pair_name}"):
+                                selected_pairs.append(pair_name)
                         with col2:
-                            imp_name = column_names.get(importance, importance)
-                            sat_name = column_names.get(satisfaction, satisfaction)
+                            imp_name = column_names.get(pair_data['importance'], pair_data['importance'])
+                            sat_name = column_names.get(pair_data['satisfaction'], pair_data['satisfaction'])
+                            st.write(f"📊 {pair_name}")
                             st.caption(f"重要度: {imp_name} → 満足度: {sat_name}")
                     
                     if selected_pairs:
                         if st.button("選択した対応関係を削除"):
-                            new_pairs = {k: v for k, v in current_pairs.items() 
-                                       if (k, v) not in selected_pairs}
-                            st.session_state.config_manager.save_importance_satisfaction_pairs(new_pairs)
+                            for pair_name in selected_pairs:
+                                st.session_state.config_manager.remove_importance_satisfaction_pair(pair_name)
                             st.success("選択した対応関係を削除しました")
                             st.rerun()
                 
                 # 新規ペアの追加
                 st.write("新規対応関係の追加")
+                
+                # ペアの名前入力
+                pair_name = st.text_input(
+                    "対応関係の名前",
+                    help="例：人間関係、キャリアアップ環境など",
+                    key="pair_name"
+                )
+                
                 col1, col2 = st.columns(2)
                 with col1:
                     importance = st.selectbox(
@@ -342,15 +350,20 @@ def main():
                     )
                 
                 if st.button("対応関係を保存"):
-                    if importance and satisfaction:
+                    if pair_name and importance and satisfaction:
                         if importance != satisfaction:
-                            new_pairs = dict(current_pairs)
-                            new_pairs[importance] = satisfaction
-                            st.session_state.config_manager.save_importance_satisfaction_pairs(new_pairs)
-                            st.success("対応関係を保存しました")
-                            st.rerun()
+                            if pair_name in current_pairs:
+                                st.error(f"'{pair_name}' は既に使用されています。別の名前を指定してください。")
+                            else:
+                                st.session_state.config_manager.save_importance_satisfaction_pairs(
+                                    pair_name, importance, satisfaction
+                                )
+                                st.success("対応関係を保存しました")
+                                st.rerun()
                         else:
                             st.error("重要度と満足度には異なる質問を選択してください")
+                    else:
+                        st.warning("名前、重要度、満足度の質問をすべて入力してください")
             else:
                 st.info("データを読み込むと、重要度-満足度分析の設定が可能になります。")
 

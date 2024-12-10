@@ -16,7 +16,7 @@ class ConfigManager:
             'question_groups': {},
             'value_mappings': {},
             'value_groups': {},
-            'importance_satisfaction_pairs': {}  # 重要度と満足度の対応関係を保存
+            'importance_satisfaction_pairs': {}  # 名前付きの重要度-満足度ペアを保存
         }
 
     def save_config(self):
@@ -47,9 +47,19 @@ class ConfigManager:
         if 'value_groups' not in self.config:
             self.config['value_groups'] = {}
         self.config['value_groups'][column] = groups
-    def save_importance_satisfaction_pairs(self, pairs):
-        """重要度と満足度の対応関係を保存する"""
-        self.config['importance_satisfaction_pairs'] = pairs
+    def save_importance_satisfaction_pairs(self, name, importance_col, satisfaction_col):
+        """名前付きの重要度-満足度ペアを保存する"""
+        if 'importance_satisfaction_pairs' not in self.config:
+            self.config['importance_satisfaction_pairs'] = {}
+        
+        self.config['importance_satisfaction_pairs'][name] = {
+            'importance': importance_col,
+            'satisfaction': satisfaction_col
+        }
         self.save_config()
 
-        self.save_config()
+    def remove_importance_satisfaction_pair(self, name):
+        """指定された名前の重要度-満足度ペアを削除する"""
+        if name in self.config['importance_satisfaction_pairs']:
+            del self.config['importance_satisfaction_pairs'][name]
+            self.save_config()
