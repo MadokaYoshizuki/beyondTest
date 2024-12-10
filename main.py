@@ -503,6 +503,34 @@ def main():
         st.markdown("## 6. PDF出力")
         st.markdown("---")
         
+        # フォント設定
+        with st.expander("フォント設定", expanded=True):
+            st.write("### 日本語フォントの設定")
+            
+            # フォントファイルのアップロード
+            font_file = st.file_uploader(
+                "日本語フォントファイル (NotoSansCJK-Regular.ttc) をアップロード:",
+                type=['ttc', 'ttf'],
+                key="font_uploader"
+            )
+            
+            if font_file is not None:
+                # fontsディレクトリの作成
+                if not os.path.exists('fonts'):
+                    os.makedirs('fonts')
+                
+                # フォントファイルの保存
+                font_path = os.path.join('fonts', 'NotoSansCJK-Regular.ttc')
+                with open(font_path, 'wb') as f:
+                    f.write(font_file.getvalue())
+                st.success("フォントファイルを保存しました")
+            
+            # 現在のフォント状態を確認
+            if os.path.exists('fonts/NotoSansCJK-Regular.ttc'):
+                st.info("日本語フォントが利用可能です")
+            else:
+                st.warning("日本語フォントがアップロードされていません。PDFの日本語が正しく表示されない可能性があります。")
+        
         # PDF設定の編集
         with st.expander("PDF出力設定", expanded=True):
             st.write("出力内容の選択")

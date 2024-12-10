@@ -21,15 +21,15 @@ class PDFGenerator:
         try:
             # プロジェクト内のフォントを使用
             font_path = 'fonts/NotoSansCJK-Regular.ttc'
-            if not os.path.exists('fonts'):
-                os.makedirs('fonts')
-                st.info("フォントファイルをアップロードしてください。")
-            
-            for font_path in font_paths:
-                if os.path.exists(font_path):
+            if os.path.exists(font_path):
+                try:
                     pdfmetrics.registerFont(TTFont('NotoSans', font_path))
                     self.font_name = 'NotoSans'
-                    break
+                    st.success("日本語フォントを正常に読み込みました")
+                except Exception as e:
+                    st.error(f"フォントの読み込み中にエラーが発生しました: {str(e)}")
+            else:
+                st.warning("日本語フォントが見つかりません。フォント設定セクションからアップロードしてください。")
             
             if self.font_name == 'Helvetica':
                 st.warning("日本語フォントが見つかりません。代替フォントを使用します。")
