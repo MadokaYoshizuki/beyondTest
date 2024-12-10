@@ -100,6 +100,7 @@ class PDFGenerator:
         """相関係数ヒートマップの作成"""
         import matplotlib.pyplot as plt
         import seaborn as sns
+        from io import BytesIO
         
         # プロットサイズの設定
         plt.figure(figsize=(10, 8))
@@ -120,10 +121,17 @@ class PDFGenerator:
         plt.yticks(rotation=0)
         plt.tight_layout()
         
-        return plt.gcf()
+        # プロットをバイトストリームとして保存
+        img_stream = BytesIO()
+        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight')
+        img_stream.seek(0)
+        plt.close()
+        
+        return img_stream
 
     def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
         """散布図の作成"""
+        from io import BytesIO
         plt.figure(figsize=(10, 8))
         
         # 散布図のプロット
@@ -144,7 +152,13 @@ class PDFGenerator:
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
         
-        return plt.gcf()
+        # プロットをバイトストリームとして保存
+        img_stream = BytesIO()
+        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight')
+        img_stream.seek(0)
+        plt.close()
+        
+        return img_stream
 
     def _add_numeric_analysis_section(self, elements, dfs, config_manager, section_number, options):
         """数値分析のセクションを追加"""
@@ -207,24 +221,11 @@ class PDFGenerator:
                 corr_data = df[numeric_columns].corr()
                 
                 # ヒートマップの生成
-                fig = self._create_heatmap(corr_data, column_names)
-                temp_dir = os.path.join(os.getcwd(), 'temp')
-                os.makedirs(temp_dir, exist_ok=True)
-                temp_path = os.path.join(temp_dir, f'heatmap_{i}.png')
-                
-                # プロットを保存
-                fig.savefig(temp_path, dpi=300, bbox_inches='tight')
-                plt.close(fig)  # プロットを閉じる
-                
-                # ファイルが存在することを確認
-                if os.path.exists(temp_path):
-                    correlation_elements.append(Image(temp_path, width=6*inch, height=6*inch))
-                    try:
-                        os.remove(temp_path)
-                    except Exception as e:
-                        st.warning(f"一時ファイルの削除に失敗しました: {str(e)}")
-                else:
-                    st.error(f"プロットの保存に失敗しました: {temp_path}")
+                img_stream = self._create_heatmap(corr_data, column_names)
+                try:
+                    correlation_elements.append(Image(img_stream, width=6*inch, height=6*inch))
+                except Exception as e:
+                    st.error(f"画像の追加中にエラーが発生しました: {str(e)}")
                 
                 # 相関係数の表
                 display_cols = [column_names.get(col, col) for col in corr_data.columns]
@@ -284,24 +285,11 @@ class PDFGenerator:
                 plot_data = pd.DataFrame(data_points)
                 
                 # 散布図の生成
-                fig = self._create_scatter_plot(plot_data)
-                temp_dir = os.path.join(os.getcwd(), 'temp')
-                os.makedirs(temp_dir, exist_ok=True)
-                temp_path = os.path.join(temp_dir, f'scatter_{i}.png')
-                
-                # プロットを保存
-                fig.savefig(temp_path, dpi=300, bbox_inches='tight')
-                plt.close(fig)
-                
-                # ファイルが存在することを確認
-                if os.path.exists(temp_path):
-                    is_elements.append(Image(temp_path, width=6*inch, height=6*inch))
-                    try:
-                        os.remove(temp_path)
-                    except Exception as e:
-                        st.warning(f"一時ファイルの削除に失敗しました: {str(e)}")
-                else:
-                    st.error(f"プロットの保存に失敗しました: {temp_path}")
+                img_stream = self._create_scatter_plot(plot_data)
+                try:
+                    is_elements.append(Image(img_stream, width=6*inch, height=6*inch))
+                except Exception as e:
+                    st.error(f"画像の追加中にエラーが発生しました: {str(e)}")
             
             elements.append(KeepTogether(is_elements))
 
