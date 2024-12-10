@@ -335,7 +335,7 @@ class Visualizer:
                            "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
                            "<extra></extra>"))
             
-            # ラベルを引き出し線付きのアノテーションとして追加
+            # ラベルを引き出し線付きのアノテーションとして追加（背景なし）
             fig.add_annotation(
                 x=data['importance_mean'],
                 y=data['satisfaction_mean'],
@@ -343,14 +343,10 @@ class Visualizer:
                 showarrow=True,
                 arrowhead=2,
                 arrowsize=1,
-                arrowwidth=2,
+                arrowwidth=1.5,
                 arrowcolor="grey",
-                ax=20 if text_pos in ["top right", "bottom right"] else -20,
-                ay=20 if text_pos in ["top right", "top left"] else -20,
-                bgcolor="white",
-                bordercolor="grey",
-                borderwidth=1,
-                borderpad=4,
+                ax=40 if text_pos in ["top right", "bottom right"] else -40,
+                ay=40 if text_pos in ["top right", "top left"] else -40,
                 font=dict(size=12)
             )
         
