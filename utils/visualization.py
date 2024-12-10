@@ -461,53 +461,154 @@ class Visualizer:
         # 3. 値グループごとの分析
         if value_groups:
             st.write("値グループ分析結果")
-            for col, groups in value_groups.items():
-                if col in df.columns and pd.api.types.is_numeric_dtype(df[col]):
-                    display_name = column_names.get(col, col)
-                    st.write(f"● {display_name}")
-                    
-                    value_group_results = {}
-                    
-                    # 全体の集計
-                    total_count = len(df)
-                    for range_str, label in groups.items():
-                        min_val, max_val = map(float, range_str.split('-'))
-                        mask = (df[col] >= min_val) & (df[col] <= max_val)
-                        count = mask.sum()
+            
+            # 質問ごとの値グループ分析
+            st.subheader("1. 質問ごとの値グループ分析")
+            
+            # 数値回答の質問を取得
+            numeric_cols = df.select_dtypes(include=['number']).columns
+            
+            for col in numeric_cols:
+                display_name = column_names.get(col, col)
+                
+                # expanderを使用してレイアウトを改善
+                with st.expander(f"● {display_name}"):
+                    if col in value_groups:
+                        value_group_results = {}
                         
-                        value_group_results[label] = {}
-                        value_group_results[label]['全体'] = {
-                            '件数': count,
-                            '割合': '{:.1f}'.format((count / total_count) * 100) if total_count > 0 else '-'
-                        }
-                        
-                        # 属性値ごとの集計
-                        if attribute != "全体":
-                            for attr_value in df[attribute].unique():
-                                subset = df[df[attribute] == attr_value]
-                                subset_mask = (subset[col] >= min_val) & (subset[col] <= max_val)
-                                subset_count = subset_mask.sum()
-                                
-                                value_group_results[label][attr_value] = {
-                                    '件数': subset_count,
-                                    '割合': '{:.1f}'.format((subset_count / len(subset)) * 100) if len(subset) > 0 else '-'
-                                }
-                    
-                    # 結果の表示
-                    for metric in ['件数', '割合']:
-                        columns = ['全体'] + (list(df[attribute].unique()) if attribute != "全体" else [])
-                        result_df = pd.DataFrame({
-                            label: {
-                                col: data.get(col, {}).get(metric, '-')
-                                for col in columns
+                        # 全体の集計
+                        total_count = len(df)
+                        for range_str, label in value_groups[col].items():
+                            min_val, max_val = map(float, range_str.split('-'))
+                            mask = (df[col] >= min_val) & (df[col] <= max_val)
+                            count = mask.sum()
+                            
+                            value_group_results[label] = {}
+                            value_group_results[label]['全体'] = {
+                                '件数': count,
+                                '割合': '{:.1f}'.format((count / total_count) * 100) if total_count > 0 else '-'
                             }
-                            for label, data in value_group_results.items()
-                        }).T
+                            
+                            # 属性値ごとの集計
+                            if attribute != "全体":
+                                for attr_value in df[attribute].unique():
+                                    subset = df[df[attribute] == attr_value]
+                                    subset_mask = (subset[col] >= min_val) & (subset[col] <= max_val)
+                                    subset_count = subset_mask.sum()
+                                    
+                                    value_group_results[label][attr_value] = {
+                                        '件数': subset_count,
+                                        '割合': '{:.1f}'.format((subset_count / len(subset)) * 100) if len(subset) > 0 else '-'
+                                    }
                         
-                        st.write(f"{metric}")
-                        result_df_t = result_df.T
-                        result_df_t.index.name = '属性'
-                        st.dataframe(result_df_t)
+                        # 結果の表示
+                        col1, col2 = st.columns(2)
+                        for metric in ['件数', '割合']:
+                            columns = ['全体'] + (list(df[attribute].unique()) if attribute != "全体" else [])
+                            result_df = pd.DataFrame({
+                                label: {
+                                    col: data.get(col, {}).get(metric, '-')
+                                    for col in columns
+                                }
+                                for label, data in value_group_results.items()
+                            }).T
+                            
+                            if metric == '件数':
+                                with col1:
+                                    st.write(f"{metric}")
+                                    result_df_t = result_df.T
+                                    result_df_t.index.name = '属性'
+                                    st.dataframe(result_df_t)
+                            else:
+                                with col2:
+                                    st.write(f"{metric}")
+                                    result_df_t = result_df.T
+                                    result_df_t.index.name = '属性'
+                                    st.dataframe(result_df_t)
+                    else:
+                        st.info("この質問には値グループが設定されていません。")
+            
+            # 質問グループごとの値グループ分析
+            if question_groups:
+                st.subheader("2. 質問グループごとの値グループ分析")
+                
+                for group_name, questions in question_groups.items():
+                    # グループ内の数値列かつ値グループが設定されている列のみを処理
+                    valid_questions = [q for q in questions 
+                                   if q in df.columns and 
+                                   pd.api.types.is_numeric_dtype(df[q]) and 
+                                   q in value_groups]
+                    
+                    if valid_questions:
+                        with st.expander(f"● {group_name}"):
+                            # 各値グループのラベルを収集
+                            all_labels = set()
+                            for col in valid_questions:
+                                all_labels.update(value_groups[col].values())
+                            
+                            # グループ全体の結果を集計
+                            group_results = {}
+                            total_count = len(df) * len(valid_questions)  # 全回答数
+                            
+                            for label in all_labels:
+                                label_count = 0
+                                
+                                for col in valid_questions:
+                                    for range_str, range_label in value_groups[col].items():
+                                        if range_label == label:
+                                            min_val, max_val = map(float, range_str.split('-'))
+                                            mask = (df[col] >= min_val) & (df[col] <= max_val)
+                                            label_count += mask.sum()
+                                
+                                group_results[label] = {}
+                                group_results[label]['全体'] = {
+                                    '件数': label_count,
+                                    '割合': '{:.1f}'.format((label_count / total_count) * 100) if total_count > 0 else '-'
+                                }
+                                
+                                # 属性値ごとの集計
+                                if attribute != "全体":
+                                    for attr_value in df[attribute].unique():
+                                        subset = df[df[attribute] == attr_value]
+                                        attr_label_count = 0
+                                        
+                                        for col in valid_questions:
+                                            for range_str, range_label in value_groups[col].items():
+                                                if range_label == label:
+                                                    min_val, max_val = map(float, range_str.split('-'))
+                                                    mask = (subset[col] >= min_val) & (subset[col] <= max_val)
+                                                    attr_label_count += mask.sum()
+                                        
+                                        attr_total = len(subset) * len(valid_questions)
+                                        group_results[label][attr_value] = {
+                                            '件数': attr_label_count,
+                                            '割合': '{:.1f}'.format((attr_label_count / attr_total) * 100) if attr_total > 0 else '-'
+                                        }
+                            
+                            # 結果の表示
+                            col1, col2 = st.columns(2)
+                            for metric in ['件数', '割合']:
+                                columns = ['全体'] + (list(df[attribute].unique()) if attribute != "全体" else [])
+                                result_df = pd.DataFrame({
+                                    label: {
+                                        col: data.get(col, {}).get(metric, '-')
+                                        for col in columns
+                                    }
+                                    for label, data in group_results.items()
+                                }).T
+                                
+                                if metric == '件数':
+                                    with col1:
+                                        st.write(f"{metric}")
+                                        result_df_t = result_df.T
+                                        result_df_t.index.name = '属性'
+                                        st.dataframe(result_df_t)
+                                else:
+                                    with col2:
+                                        st.write(f"{metric}")
+                                        result_df_t = result_df.T
+                                        result_df_t.index.name = '属性'
+                                        st.dataframe(result_df_t)
         
         # Excelファイルの保存
         excel_data = {
