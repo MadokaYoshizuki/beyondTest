@@ -155,64 +155,71 @@ class Visualizer:
             st.info("数値データが見つかりませんでした。")
 
     def _display_value_distribution(self, df, column_names):
-        numeric_columns = df.select_dtypes(include=['number']).columns
-        if not numeric_columns.empty:
-            # Y軸のポジション（質問番号と質問名）を設定
-            y_positions = list(range(len(numeric_columns)))
-            y_labels = [f"Q{i+1}. {column_names.get(col, col)}" for i, col in enumerate(numeric_columns)]
-            
-            # データを格納するリスト
-            fig_data = []
-            
-            # 各質問の回答分布を計算
-            for i, col in enumerate(numeric_columns):
-                value_counts = df[col].value_counts().sort_index()
-                total_count = len(df)
+        # 単一回答の数値列のみを抽出
+        numeric_columns = []
+        for col in df.select_dtypes(include=['number']).columns:
+            values = df[col].fillna('').astype(str)
+            if not values.str.contains(',').any():  # カンマを含まない = 単一回答
+                numeric_columns.append(col)
                 
-                # 回答値を3つのグループに分類
-                values = value_counts.index.tolist()
-                if len(values) >= 3:
-                    negative_values = values[:1]  # 最小値（否定的）
-                    neutral_values = values[1:-1]  # 中間値（中立）
-                    positive_values = values[-1:]  # 最大値（肯定的）
-                else:
-                    # 値が3未満の場合は均等に分配
-                    third = len(values) // 3
-                    negative_values = values[:third]
-                    neutral_values = values[third:-third] if third > 0 else []
-                    positive_values = values[-third:] if third > 0 else values[-1:]
-
-                # 各グループの回答を集計
-                value_groups = {
-                    '否定的': (negative_values, 'rgb(255, 65, 54)'),  # 赤
-                    '中立的': (neutral_values, 'rgb(190, 190, 190)'),  # グレー
-                    '肯定的': (positive_values, 'rgb(93, 164, 214)')   # 青
-                }
-
-                for group_name, (group_values, color) in value_groups.items():
-                    group_count = sum(value_counts.get(val, 0) for val in group_values)
-                    if group_count > 0:
-                        percentage = (group_count / total_count) * 100
-                        values_str = ', '.join(map(str, group_values))
-                        fig_data.append(
-                            go.Bar(
-                                name=f"{values_str}",
-                                x=[percentage],
-                                y=[i],
-                                orientation='h',
-                                text=f"{percentage:.1f}%",
-                                textposition='inside',
-                                marker_color=color,
-                                customdata=[[values_str, group_count]],
-                                hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
-                            )
-                        )
+        if not numeric_columns:
+            st.info("単一回答の数値データが見つかりませんでした。")
+            return
+            
+        # Y軸のポジション（質問番号と質問名）を設定
+        y_positions = list(range(len(numeric_columns)))
+        y_labels = [f"Q{i+1}. {column_names.get(col, col)}" for i, col in enumerate(numeric_columns)]
+        
+        # データを格納するリスト
+        fig_data = []
+        
+        # 色のパレット（回答値ごとに異なる色を割り当て）
+        colors = {
+            1: 'rgb(255, 65, 54)',   # 赤
+            2: 'rgb(255, 144, 14)',  # オレンジ
+            3: 'rgb(190, 190, 190)', # グレー
+            4: 'rgb(93, 164, 214)',  # 青
+            5: 'rgb(44, 160, 44)'    # 緑
+        }
+        
+        # 各質問の回答分布を計算
+        for i, col in enumerate(numeric_columns):
+            value_counts = df[col].value_counts().sort_index()
+            total_count = len(df)
+            
+            # 各回答値の割合を計算し、個別のバーとして追加
+            for value in value_counts.index:
+                count = value_counts[value]
+                percentage = (count / total_count) * 100
+                
+                fig_data.append(
+                    go.Bar(
+                        name=str(value),  # 凡例に表示する回答値
+                        x=[percentage],
+                        y=[i],
+                        orientation='h',
+                        text=f"{percentage:.1f}%",
+                        textposition='inside',
+                        marker_color=colors.get(value, 'rgb(128, 128, 128)'),  # 定義されていない値はグレーを使用
+                        customdata=[[value, count]],
+                        hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
+                    )
+                )
 
             # グラフの作成
             fig = go.Figure(data=fig_data)
             
+            # 凡例の重複を排除（nameでグループ化）
+            legend_names = []
+            for trace in fig.data:
+                if trace.name not in legend_names:
+                    legend_names.append(trace.name)
+                    trace.showlegend = True
+                else:
+                    trace.showlegend = False
+            
             fig.update_layout(
-                title="全質問の回答分布",
+                title="全質問の回答分布（単一回答のみ）",
                 barmode='stack',
                 showlegend=True,
                 xaxis=dict(
@@ -231,7 +238,14 @@ class Visualizer:
                 ),
                 height=max(400, len(numeric_columns) * 40),  # 質問数に応じて高さを調整
                 margin=dict(l=300, r=50, t=50, b=50),  # マージンの調整
-                legend_title="回答値",
+                legend=dict(
+                    title="回答値",
+                    traceorder='normal',
+                    yanchor="top",
+                    y=1,
+                    xanchor="left",
+                    x=1.02
+                ),
                 plot_bgcolor='white',
                 paper_bgcolor='white',
                 bargap=0.4,  # バー間のギャップを調整
