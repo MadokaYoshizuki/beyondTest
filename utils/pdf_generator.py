@@ -208,11 +208,23 @@ class PDFGenerator:
                 
                 # ヒートマップの生成
                 fig = self._create_heatmap(corr_data, column_names)
-                temp_path = f"temp_heatmap_{i}.png"
+                temp_dir = os.path.join(os.getcwd(), 'temp')
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, f'heatmap_{i}.png')
+                
+                # プロットを保存
                 fig.savefig(temp_path, dpi=300, bbox_inches='tight')
                 plt.close(fig)  # プロットを閉じる
-                correlation_elements.append(Image(temp_path, width=6*inch, height=6*inch))
-                os.remove(temp_path)
+                
+                # ファイルが存在することを確認
+                if os.path.exists(temp_path):
+                    correlation_elements.append(Image(temp_path, width=6*inch, height=6*inch))
+                    try:
+                        os.remove(temp_path)
+                    except Exception as e:
+                        st.warning(f"一時ファイルの削除に失敗しました: {str(e)}")
+                else:
+                    st.error(f"プロットの保存に失敗しました: {temp_path}")
                 
                 # 相関係数の表
                 display_cols = [column_names.get(col, col) for col in corr_data.columns]
@@ -273,11 +285,23 @@ class PDFGenerator:
                 
                 # 散布図の生成
                 fig = self._create_scatter_plot(plot_data)
-                temp_path = f"temp_scatter_{i}.png"
+                temp_dir = os.path.join(os.getcwd(), 'temp')
+                os.makedirs(temp_dir, exist_ok=True)
+                temp_path = os.path.join(temp_dir, f'scatter_{i}.png')
+                
+                # プロットを保存
                 fig.savefig(temp_path, dpi=300, bbox_inches='tight')
                 plt.close(fig)
-                is_elements.append(Image(temp_path, width=6*inch, height=6*inch))
-                os.remove(temp_path)
+                
+                # ファイルが存在することを確認
+                if os.path.exists(temp_path):
+                    is_elements.append(Image(temp_path, width=6*inch, height=6*inch))
+                    try:
+                        os.remove(temp_path)
+                    except Exception as e:
+                        st.warning(f"一時ファイルの削除に失敗しました: {str(e)}")
+                else:
+                    st.error(f"プロットの保存に失敗しました: {temp_path}")
             
             elements.append(KeepTogether(is_elements))
 
