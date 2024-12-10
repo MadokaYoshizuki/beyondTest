@@ -308,48 +308,22 @@ class Visualizer:
         overall_importance_mean = sum(all_importance_means) / len(all_importance_means)
         overall_satisfaction_mean = sum(all_satisfaction_means) / len(all_satisfaction_means)
         
-        # 重要度（X軸）の平均値の縦線を追加
-        fig.add_shape(
-            type='line',
-            x0=overall_importance_mean,
-            x1=overall_importance_mean,
-            y0=0,  # プロットエリアの下端から
-            y1=5,  # プロットエリアの上端まで
-            line=dict(
-                color='orange',
-                width=1,
-                dash='dot'
-            )
-        )
-        
-        # 満足度（Y軸）の平均値の横線を追加
-        fig.add_shape(
-            type='line',
-            x0=0,  # プロットエリアの左端から
-            x1=5,  # プロットエリアの右端まで
-            y0=overall_satisfaction_mean,
-            y1=overall_satisfaction_mean,
-            line=dict(
-                color='orange',
-                width=1,
-                dash='dot'
-            )
-        )
-        
-        # 平均値のテキストを追加
-        fig.add_annotation(
-            x=overall_importance_mean,
-            y=0,  # プロットエリアの下端
-            text=f'重要度平均：{overall_importance_mean:.1f}',
-            showarrow=False,
-            yshift=-30
-        )
-        fig.add_annotation(
-            x=0,  # プロットエリアの左端
+        # 平均値の点線を追加
+        # 重要度の平均値（縦線）
+        fig.add_hline(
             y=overall_satisfaction_mean,
-            text=f'満足度平均：{overall_satisfaction_mean:.1f}',
-            showarrow=False,
-            xshift=-50
+            line_dash="dash",
+            line_color="orange",
+            line_width=1,
+            annotation_text=f"満足度平均：{overall_satisfaction_mean:.1f}"
+        )
+        # 満足度の平均値（横線）
+        fig.add_vline(
+            x=overall_importance_mean,
+            line_dash="dash",
+            line_color="orange",
+            line_width=1,
+            annotation_text=f"重要度平均：{overall_importance_mean:.1f}"
         )
         
         # レイアウトの設定
