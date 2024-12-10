@@ -170,15 +170,15 @@ class Visualizer:
         self._display_correlation_heatmap(df, column_names, question_groups)
 
         # 2. 回答の件数と構成比の帯グラフ
-        st.write("2. 回答の分布")
+        st.write("**2. 回答の分布**")
         self._display_value_distribution(df, column_names)
 
         # 3. 質問グループ間の散布図
-        st.write("3. 質問グループ間の散布図")
+        st.write("**3. 質問グループ間の散布図**")
         self._display_scatter_plot(df, column_names, question_groups)
 
         # 4. 重要度-満足度分析
-        st.write("4. 重要度-満足度分析")
+        st.write("**4. 重要度-満足度分析**")
         self._display_importance_satisfaction_plot(df, column_names,
                                                    config_manager)
 
@@ -322,14 +322,14 @@ class Visualizer:
         
         overall_importance_mean = round(sum(all_importance_values) / len(all_importance_values), 1)
         overall_satisfaction_mean = round(sum(all_satisfaction_values) / len(all_satisfaction_values), 1)
-        
+
         print(f"Debug - 重要度の平均値: {overall_importance_mean}")
         print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
         print(f"Debug - 重要度の値一覧: {all_importance_values}")
         print(f"Debug - 満足度の値一覧: {all_satisfaction_values}")
 
         # 軸の範囲を設定
-        x_min, x_max = 2.0, 3.2  # 重要度の範囲
+        x_min, x_max = min(all_importance_values), 3.2  # 重要度の範囲
         y_min, y_max = 2.0, 3.6  # 満足度の範囲
 
         # 平均値の点線を追加
@@ -407,17 +407,18 @@ class Visualizer:
             height=600,
             showlegend=True,
             plot_bgcolor='white',
-            # プロットエリアの枠線を追加
-            shapes=[
-                dict(type='rect',
-                     xref='paper',
-                     yref='paper',
-                     x0=0,
-                     y0=0,
-                     x1=1,
-                     y1=1,
-                     line=dict(color='rgba(128, 128, 128, 1)', width=1))
-            ])
+            # # プロットエリアの枠線を追加
+            # shapes=[
+            #     dict(type='rect',
+            #          xref='paper',
+            #          yref='paper',
+            #          x0=0,
+            #          y0=0,
+            #          x1=1,
+            #          y1=1,
+            #          line=dict(color='rgba(128, 128, 128, 1)', width=1))
+            # ]
+        )
 
         # ラベルの位置を自動調整
         fig.update_traces(textposition='top center',
