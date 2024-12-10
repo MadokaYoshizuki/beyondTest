@@ -174,8 +174,8 @@ class Visualizer:
         st.write("2. 回答の分布")
         self._display_value_distribution(df, column_names)
         
-        # 3. 質問カテゴリ間の散布図
-        st.write("3. 質問カテゴリ間の散布図")
+        # 3. 質問グループ間の散布図
+        st.write("3. 質問グループ間の散布図")
         self._display_scatter_plot(df, column_names, question_groups)
 
     def _display_correlation_heatmap(self, df, column_names, question_groups=None):
@@ -276,13 +276,13 @@ class Visualizer:
             col1, col2 = st.columns(2)
             with col1:
                 x_axis = st.selectbox(
-                    "X軸の質問カテゴリ:",
+                    "X軸の質問グループ:",
                     list(group_means.keys()),
                     key="scatter_x_axis"
                 )
             with col2:
                 y_axis = st.selectbox(
-                    "Y軸の質問カテゴリ:",
+                    "Y軸の質問グループ:",
                     list(group_means.keys()),
                     key="scatter_y_axis"
                 )
