@@ -305,13 +305,16 @@ class Visualizer:
                                "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
                                "<extra></extra>"))
 
-        # 全データの平均値を計算
+        # 全データの平均値を計算（デバッグ用にprint文を追加）
         all_importance_means = [trace.x[0] for trace in fig.data]
         all_satisfaction_means = [trace.y[0] for trace in fig.data]
-        overall_importance_mean = sum(all_importance_means) / len(
-            all_importance_means)
-        overall_satisfaction_mean = sum(all_satisfaction_means) / len(
-            all_satisfaction_means)
+        overall_importance_mean = sum(all_importance_means) / len(all_importance_means)
+        overall_satisfaction_mean = sum(all_satisfaction_means) / len(all_satisfaction_means)
+        
+        print(f"Debug - 重要度の平均値: {overall_importance_mean}")
+        print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
+        print(f"Debug - 重要度の値一覧: {all_importance_means}")
+        print(f"Debug - 満足度の値一覧: {all_satisfaction_means}")
 
         # 平均値の点線を追加
         # 満足度の平均値（横線）
