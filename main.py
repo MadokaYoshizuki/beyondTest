@@ -210,12 +210,18 @@ def main():
                 )
                 if st.button("グループを保存", key="save_question_group"):
                     if group_name and questions:
-                        st.session_state.config_manager.save_question_group(group_name, questions)
-                        st.success("質問グループを保存しました")
-                        # フォームをクリア
-                        st.session_state['question_group_name'] = ""
-                        st.session_state['question_group_items'] = []
-                        st.rerun()
+                        try:
+                            st.session_state.config_manager.save_question_group(group_name, questions)
+                            st.success("質問グループを保存しました")
+                            # セッション状態をクリア
+                            if 'question_group_name' in st.session_state:
+                                st.session_state.pop('question_group_name')
+                            if 'question_group_items' in st.session_state:
+                                st.session_state.pop('question_group_items')
+                            # 保存後にページを再読み込み
+                            st.experimental_rerun()
+                        except Exception as e:
+                            st.error(f"グループの保存中にエラーが発生しました: {str(e)}")
                     else:
                         st.warning("グループ名と質問項目を入力してください")
             else:
