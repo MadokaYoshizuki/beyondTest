@@ -80,10 +80,25 @@
         "Q.19": 5
     },
     "importance_satisfaction_pairs": {
-        "Q.1": "Q.2",
-        "Q.5": "Q.7",
-        "Q.10": "Q.11",
-        "Q.13": "Q.14",
-        "Q.17": "Q.19"
+        "人間関係": {
+            "importance": "Q.1",
+            "satisfaction": "Q.2"
+        },
+        "キャリアアップ環境": {
+            "importance": "Q.5",
+            "satisfaction": "Q.7"
+        },
+        "人材育成": {
+            "importance": "Q.10",
+            "satisfaction": "Q.11"
+        },
+        "業務効率": {
+            "importance": "Q.13",
+            "satisfaction": "Q.14"
+        },
+        "職場環境": {
+            "importance": "Q.17",
+            "satisfaction": "Q.19"
+        }
     }
 }
