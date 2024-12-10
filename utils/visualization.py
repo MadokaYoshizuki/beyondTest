@@ -341,12 +341,11 @@ class Visualizer:
                 y=data['satisfaction_mean'],
                 text=data['name'],
                 showarrow=True,
-                arrowhead=2,
-                arrowsize=1,
-                arrowwidth=1.5,
+                arrowhead=0,  # 矢印なしの直線
+                arrowwidth=1,  # 線を細く
                 arrowcolor="grey",
                 ax=40 if text_pos in ["top right", "bottom right"] else -40,
-                ay=40 if text_pos in ["top right", "top left"] else -40,
+                ay=30 if text_pos in ["top right", "top left"] else -30,  # 垂直方向の距離を調整
                 font=dict(size=12)
             )
         
