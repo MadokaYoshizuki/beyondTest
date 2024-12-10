@@ -276,6 +276,10 @@ class Visualizer:
             st.info("重要度-満足度の対応関係が設定されていません。")
             return
 
+        # データ収集用の配列を初期化
+        temp_data = []
+        importance_satisfaction_data = []
+
         # 散布図を作成
         fig = go.Figure()
 
