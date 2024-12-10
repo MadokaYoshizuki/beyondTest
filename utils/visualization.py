@@ -460,11 +460,10 @@ class Visualizer:
         
         # 3. 値グループごとの分析
         if value_groups:
-            st.write("値グループ分析結果")
+            st.header("値グループ分析結果")
             
             # 質問ごとの値グループ分析
-            st.write("### 1. 質問ごとの値グループ分析")
-            st.markdown("---")
+            st.subheader("1. 質問ごとの値グループ分析")
             
             # 数値回答の質問を取得
             numeric_cols = df.select_dtypes(include=['number']).columns
@@ -531,8 +530,7 @@ class Visualizer:
             
             # 質問グループごとの値グループ分析
             if question_groups:
-                st.write("### 2. 質問グループごとの値グループ分析")
-                st.markdown("---")
+                st.subheader("2. 質問グループごとの値グループ分析")
                 
                 for group_name, questions in question_groups.items():
                     # グループ内の数値列かつ値グループが設定されている列のみを処理
