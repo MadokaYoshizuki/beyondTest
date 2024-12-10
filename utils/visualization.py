@@ -157,18 +157,17 @@ class Visualizer:
     def _display_value_distribution(self, df, column_names):
         numeric_columns = df.select_dtypes(include=['number']).columns
         if not numeric_columns.empty:
-            # 全質問の回答分布をまとめて表示
-            fig = go.Figure()
-            
-            # Y軸のポジション（質問名）を設定
+            # Y軸のポジション（質問番号と質問名）を設定
             y_positions = list(range(len(numeric_columns)))
-            y_labels = [column_names.get(col, col) for col in numeric_columns]
+            y_labels = [f"Q{i+1}. {column_names.get(col, col)}" for i, col in enumerate(numeric_columns)]
+            
+            # データを格納するリスト
+            fig_data = []
             
             # 各質問の回答分布を計算
             for i, col in enumerate(numeric_columns):
                 value_counts = df[col].value_counts().sort_index()
                 total_count = len(df)
-                percentages = (value_counts / total_count) * 100
                 
                 # 回答値を3つのグループに分類
                 values = value_counts.index.tolist()
@@ -183,75 +182,60 @@ class Visualizer:
                     neutral_values = values[third:-third] if third > 0 else []
                     positive_values = values[-third:] if third > 0 else values[-1:]
 
-                # 色分けして表示
-                # 否定的回答（赤）
-                cumulative = 0
-                for value in negative_values:
-                    if value in value_counts.index:
-                        percentage = (value_counts[value] / total_count) * 100
-                        fig.add_trace(go.Bar(
-                            name=f"{value}",
-                            x=[percentage],
-                            y=[i],
-                            orientation='h',
-                            text=f"{percentage:.1f}%",
-                            textposition='auto',
-                            marker_color='rgb(255, 65, 54)',  # 赤
-                            offset=cumulative,
-                            customdata=[[value, int(value_counts[value])]],
-                            hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
-                        ))
-                        cumulative += percentage
+                # 各グループの回答を集計
+                value_groups = {
+                    '否定的': (negative_values, 'rgb(255, 65, 54)'),  # 赤
+                    '中立的': (neutral_values, 'rgb(190, 190, 190)'),  # グレー
+                    '肯定的': (positive_values, 'rgb(93, 164, 214)')   # 青
+                }
 
-                # 中立的回答（グレー）
-                for value in neutral_values:
-                    if value in value_counts.index:
-                        percentage = (value_counts[value] / total_count) * 100
-                        fig.add_trace(go.Bar(
-                            name=f"{value}",
-                            x=[percentage],
-                            y=[i],
-                            orientation='h',
-                            text=f"{percentage:.1f}%",
-                            textposition='auto',
-                            marker_color='rgb(190, 190, 190)',  # グレー
-                            offset=cumulative,
-                            customdata=[[value, int(value_counts[value])]],
-                            hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
-                        ))
-                        cumulative += percentage
+                for group_name, (group_values, color) in value_groups.items():
+                    group_count = sum(value_counts.get(val, 0) for val in group_values)
+                    if group_count > 0:
+                        percentage = (group_count / total_count) * 100
+                        values_str = ', '.join(map(str, group_values))
+                        fig_data.append(
+                            go.Bar(
+                                name=f"{values_str}",
+                                x=[percentage],
+                                y=[i],
+                                orientation='h',
+                                text=f"{percentage:.1f}%",
+                                textposition='inside',
+                                marker_color=color,
+                                customdata=[[values_str, group_count]],
+                                hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
+                            )
+                        )
 
-                # 肯定的回答（青）
-                for value in positive_values:
-                    if value in value_counts.index:
-                        percentage = (value_counts[value] / total_count) * 100
-                        fig.add_trace(go.Bar(
-                            name=f"{value}",
-                            x=[percentage],
-                            y=[i],
-                            orientation='h',
-                            text=f"{percentage:.1f}%",
-                            textposition='auto',
-                            marker_color='rgb(93, 164, 214)',  # 青
-                            offset=cumulative,
-                            customdata=[[value, int(value_counts[value])]],
-                            hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
-                        ))
-                        cumulative += percentage
+            # グラフの作成
+            fig = go.Figure(data=fig_data)
             
             fig.update_layout(
                 title="全質問の回答分布",
                 barmode='stack',
                 showlegend=True,
-                xaxis_title="回答の割合 (%)",
-                yaxis_title="質問項目",
-                yaxis={'ticktext': y_labels, 'tickvals': y_positions},
-                height=max(400, len(numeric_columns) * 30),
-                margin=dict(l=300),  # 左マージンを広げて質問名を表示
+                xaxis=dict(
+                    title="回答の割合 (%)",
+                    range=[0, 100],  # X軸の範囲を0-100%に固定
+                    showgrid=True,
+                    gridcolor='rgba(0,0,0,0.1)',
+                    zeroline=True,
+                    zerolinecolor='rgba(0,0,0,0.2)'
+                ),
+                yaxis=dict(
+                    title="質問項目",
+                    ticktext=y_labels,
+                    tickvals=y_positions,
+                    automargin=True
+                ),
+                height=max(400, len(numeric_columns) * 40),  # 質問数に応じて高さを調整
+                margin=dict(l=300, r=50, t=50, b=50),  # マージンの調整
                 legend_title="回答値",
                 plot_bgcolor='white',
                 paper_bgcolor='white',
-                bargap=0.2
+                bargap=0.4,  # バー間のギャップを調整
+                uniformtext=dict(mode="hide", minsize=8)  # テキストサイズの自動調整
             )
             
             st.plotly_chart(fig, use_container_width=True)
