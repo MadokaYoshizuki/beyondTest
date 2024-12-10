@@ -560,10 +560,12 @@ class Visualizer:
                                             mask = (df[col] >= min_val) & (df[col] <= max_val)
                                             label_count += mask.sum()
                                 
+                                # 割合の計算を修正（全回答数ではなく、有効な回答数で計算）
+                                valid_responses = sum(1 for _ in df.iterrows()) * len(valid_questions)
                                 group_results[label] = {}
                                 group_results[label]['全体'] = {
                                     '件数': label_count,
-                                    '割合': '{:.1f}'.format((label_count / total_count) * 100) if total_count > 0 else '-'
+                                    '割合': '{:.1f}'.format((label_count / valid_responses) * 100) if valid_responses > 0 else '-'
                                 }
                                 
                                 # 属性値ごとの集計
@@ -579,10 +581,11 @@ class Visualizer:
                                                     mask = (subset[col] >= min_val) & (subset[col] <= max_val)
                                                     attr_label_count += mask.sum()
                                         
-                                        attr_total = len(subset) * len(valid_questions)
+                                        # 属性ごとの有効な回答数で計算
+                                        attr_valid_responses = len(subset) * len(valid_questions)
                                         group_results[label][attr_value] = {
                                             '件数': attr_label_count,
-                                            '割合': '{:.1f}'.format((attr_label_count / attr_total) * 100) if attr_total > 0 else '-'
+                                            '割合': '{:.1f}'.format((attr_label_count / attr_valid_responses) * 100) if attr_valid_responses > 0 else '-'
                                         }
                             
                             # 結果の表示
