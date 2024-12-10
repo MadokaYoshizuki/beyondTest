@@ -61,8 +61,8 @@ class Visualizer:
         st.subheader("【数値回答】")
         
         # 1. 相関係数ヒートマップ
-        st.write("1. 質問間の相関係数ヒートマップ")
-        self._display_correlation_heatmap(df_filtered, column_names)
+        st.write("1. 相関係数ヒートマップ")
+        self._display_correlation_heatmap(df_filtered, column_names, question_groups)
         
         # 2. 回答の件数と構成比の帯グラフ
         st.write("2. 回答の分布")
@@ -84,25 +84,65 @@ class Visualizer:
         
         self._display_multiple_choice_analysis(df_filtered, selected_attribute, column_names, display_mode)
 
-    def _display_correlation_heatmap(self, df, column_names):
+    def _display_correlation_heatmap(self, df, column_names, question_groups=None):
         numeric_columns = df.select_dtypes(include=['number']).columns
         if not numeric_columns.empty:
-            display_columns = [column_names.get(col, col) for col in numeric_columns]
-            corr_data = df[numeric_columns].corr()
+            # 表示モードの選択
+            correlation_mode = st.radio(
+                "相関分析の表示モード:",
+                ["質問間の相関", "質問グループ間の相関"],
+                key="correlation_mode"
+            )
             
-            fig = go.Figure(data=go.Heatmap(
-                z=corr_data,
-                x=display_columns,
-                y=display_columns,
-                colorscale='RdBu',
-                text=[[f'{val:.2f}' for val in row] for row in corr_data.values],
-                texttemplate='%{text}',
-                textfont={"size": 10},
-                hoverongaps=False
-            ))
+            if correlation_mode == "質問間の相関":
+                display_columns = [column_names.get(col, col) for col in numeric_columns]
+                corr_data = df[numeric_columns].corr()
+                
+                fig = go.Figure(data=go.Heatmap(
+                    z=corr_data,
+                    x=display_columns,
+                    y=display_columns,
+                    colorscale='RdBu',
+                    text=[[f'{val:.2f}' for val in row] for row in corr_data.values],
+                    texttemplate='%{text}',
+                    textfont={"size": 10},
+                    hoverongaps=False
+                ))
+                
+                title = "質問間の相関係数"
+            
+            else:  # 質問グループ間の相関
+                if not question_groups:
+                    st.info("質問グループが設定されていません。")
+                    return
+                
+                # グループごとの平均値を計算
+                group_means = {}
+                for group_name, questions in question_groups.items():
+                    numeric_questions = [q for q in questions if q in numeric_columns]
+                    if numeric_questions:
+                        group_means[group_name] = df[numeric_questions].mean().mean()
+                
+                # 相関係数行列の作成
+                group_names = list(group_means.keys())
+                group_values = pd.DataFrame({name: [val] for name, val in group_means.items()})
+                corr_data = group_values.T.corr()
+                
+                fig = go.Figure(data=go.Heatmap(
+                    z=corr_data,
+                    x=group_names,
+                    y=group_names,
+                    colorscale='RdBu',
+                    text=[[f'{val:.2f}' for val in row] for row in corr_data.values],
+                    texttemplate='%{text}',
+                    textfont={"size": 12},
+                    hoverongaps=False
+                ))
+                
+                title = "質問グループ間の相関係数"
             
             fig.update_layout(
-                title="相関係数ヒートマップ",
+                title=title,
                 width=800,
                 height=800,
                 xaxis={'tickangle': 45},
@@ -116,53 +156,48 @@ class Visualizer:
     def _display_value_distribution(self, df, column_names):
         numeric_columns = df.select_dtypes(include=['number']).columns
         if not numeric_columns.empty:
-            # 値の分布を表示
-            for col in numeric_columns:
-                display_name = column_names.get(col, col)
-                
-                # 回答の件数と構成比の計算
+            # 全質問の回答分布をまとめて表示
+            fig = go.Figure()
+            
+            # Y軸のポジション（質問名）を設定
+            y_positions = list(range(len(numeric_columns)))
+            y_labels = [column_names.get(col, col) for col in numeric_columns]
+            
+            # 各質問の回答分布を計算
+            for i, col in enumerate(numeric_columns):
                 value_counts = df[col].value_counts().sort_index()
                 total_count = len(df)
+                percentages = (value_counts / total_count) * 100
                 
-                # 帯グラフの作成
-                fig = go.Figure()
-                
-                # 回答件数のバー
-                fig.add_trace(go.Bar(
-                    name="回答件数",
-                    x=value_counts.index,
-                    y=value_counts.values,
-                    text=value_counts.values,
-                    textposition='auto',
-                ))
-                
-                # 構成比の折れ線
-                fig.add_trace(go.Scatter(
-                    name="構成比(%)",
-                    x=value_counts.index,
-                    y=(value_counts.values / total_count) * 100,
-                    yaxis="y2",
-                    line=dict(color='red'),
-                    mode='lines+markers+text',
-                    text=[f'{(v/total_count)*100:.1f}%' for v in value_counts.values],
-                    textposition='top center'
-                ))
-                
-                fig.update_layout(
-                    title=f"{display_name}の回答分布",
-                    xaxis_title="回答値",
-                    yaxis_title="回答件数",
-                    yaxis2=dict(
-                        title="構成比(%)",
-                        overlaying="y",
-                        side="right",
-                        range=[0, 100]
-                    ),
-                    showlegend=True,
-                    height=400
-                )
-                
-                st.plotly_chart(fig)
+                # 累積位置の計算
+                cumulative = 0
+                for value, percentage in percentages.items():
+                    fig.add_trace(go.Bar(
+                        name=f"{value}",
+                        x=[percentage],
+                        y=[i],
+                        orientation='h',
+                        text=f"{percentage:.1f}%",
+                        textposition='auto',
+                        offset=cumulative,
+                        customdata=[[value, int(value_counts[value])]],
+                        hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
+                    ))
+                    cumulative += percentage
+            
+            fig.update_layout(
+                title="全質問の回答分布",
+                barmode='stack',
+                showlegend=True,
+                xaxis_title="回答の割合 (%)",
+                yaxis_title="質問項目",
+                yaxis={'ticktext': y_labels, 'tickvals': y_positions},
+                height=max(400, len(numeric_columns) * 30),
+                margin=dict(l=200),  # 左マージンを広げて質問名を表示
+                legend_title="回答値"
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("数値データが見つかりませんでした。")
 
