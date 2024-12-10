@@ -461,13 +461,11 @@ class Visualizer:
                         min_val, max_val = map(float, range_str.split('-'))
                         mask = (df[col] >= min_val) & (df[col] <= max_val)
                         count = mask.sum()
-                        mean_val = df[col][mask].mean() if count > 0 else None
                         
                         value_group_results[label] = {}
                         value_group_results[label]['全体'] = {
                             '件数': count,
-                            '割合': '{:.1f}'.format((count / total_count) * 100) if total_count > 0 else '-',
-                            '平均': '{:g}'.format(mean_val) if pd.notnull(mean_val) else '-'
+                            '割合': '{:.1f}'.format((count / total_count) * 100) if total_count > 0 else '-'
                         }
                         
                         # 属性値ごとの集計
@@ -476,16 +474,14 @@ class Visualizer:
                                 subset = df[df[attribute] == attr_value]
                                 subset_mask = (subset[col] >= min_val) & (subset[col] <= max_val)
                                 subset_count = subset_mask.sum()
-                                subset_mean = subset[col][subset_mask].mean() if subset_count > 0 else None
                                 
                                 value_group_results[label][attr_value] = {
                                     '件数': subset_count,
-                                    '割合': '{:.1f}'.format((subset_count / len(subset)) * 100) if len(subset) > 0 else '-',
-                                    '平均': '{:g}'.format(subset_mean) if pd.notnull(subset_mean) else '-'
+                                    '割合': '{:.1f}'.format((subset_count / len(subset)) * 100) if len(subset) > 0 else '-'
                                 }
                     
                     # 結果の表示
-                    for metric in ['件数', '割合', '平均']:
+                    for metric in ['件数', '割合']:
                         columns = ['全体'] + (list(df[attribute].unique()) if attribute != "全体" else [])
                         result_df = pd.DataFrame({
                             label: {
