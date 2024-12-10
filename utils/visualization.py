@@ -58,22 +58,22 @@ class Visualizer:
         df_filtered = df[target_columns]
 
         # 数値回答の分析
-        st.header("【数値回答】")
+        st.subheader("【数値回答】")
         
         # 1. 相関係数ヒートマップ
-        st.subheader("1. 質問間の相関係数ヒートマップ")
+        st.write("1. 質問間の相関係数ヒートマップ")
         self._display_correlation_heatmap(df_filtered, column_names)
         
         # 2. 回答の件数と構成比の帯グラフ
-        st.subheader("2. 回答の分布")
+        st.write("2. 回答の分布")
         self._display_value_distribution(df_filtered, column_names)
         
         # 3. 平均値の散布図
-        st.subheader("3. 平均値の散布図")
+        st.write("3. 平均値の散布図")
         self._display_scatter_plot(df_filtered, column_names)
         
         # 数値回答（複数回答）の分析
-        st.header("【数値回答（複数回答）】")
+        st.subheader("【数値回答（複数回答）】")
         
         # 属性の選択
         attributes = ["全体"] + config_manager.config.get('attributes', [])
@@ -330,7 +330,8 @@ class Visualizer:
             st.info("数値データが見つかりませんでした。")
             return
 
-        # 1. 質問ごとの分析
+        # メインセクション：質問ごとの分析
+        st.subheader("質問ごとの分析結果")
         results = {'平均': {}, '100点換算': {}}
         
         for col in numeric_cols:
@@ -373,23 +374,19 @@ class Visualizer:
             results_mean = results_mean[column_order]
             results_score = results_score[column_order]
         
-        st.write("質問ごとの分析結果")
-        # 行と列を入れ替えて表示
-        results_mean_t = results_mean.T
-        results_score_t = results_score.T
-        
-        # インデックス名を「属性」に設定
-        results_mean_t.index.name = '属性'
-        results_score_t.index.name = '属性'
-        
         st.write("平均値")
+        results_mean_t = results_mean.T
+        results_mean_t.index.name = '属性'
         st.dataframe(results_mean_t)
+        
         st.write("100点換算")
+        results_score_t = results_score.T
+        results_score_t.index.name = '属性'
         st.dataframe(results_score_t)
         
-        # 2. 質問グループごとの分析
+        # 質問グループごとの分析
         if question_groups:
-            st.write("質問グループごとの分析結果")
+            st.subheader("質問グループごとの分析結果")
             group_results = {'平均': {}, '100点換算': {}}
             
             for group_name, questions in question_groups.items():
@@ -458,12 +455,12 @@ class Visualizer:
             group_score_df_t.index.name = '属性'
             st.dataframe(group_score_df_t)
         
-        # 3. 値グループごとの分析
+        # 値グループごとの分析
         if value_groups:
-            st.header("値グループ分析結果")
+            st.subheader("値グループ分析結果")
             
             # 質問ごとの値グループ分析
-            st.subheader("1. 質問ごとの値グループ分析")
+            st.write("質問ごとの値グループ分析")
             
             # 数値回答の質問を取得
             numeric_cols = df.select_dtypes(include=['number']).columns
@@ -530,7 +527,7 @@ class Visualizer:
             
             # 質問グループごとの値グループ分析
             if question_groups:
-                st.subheader("2. 質問グループごとの値グループ分析")
+                st.write("質問グループごとの値グループ分析")
                 
                 for group_name, questions in question_groups.items():
                     # グループ内の数値列かつ値グループが設定されている列のみを処理
@@ -545,8 +542,7 @@ class Visualizer:
                             st.info("このグループには数値回答の質問が含まれていません。")
                         elif not valid_questions:
                             st.info("このグループの質問には値グループが設定されていません。")
-                    if valid_questions:
-                        with st.expander(f"● {group_name}"):
+                        else:
                             # 各値グループのラベルを収集
                             all_labels = set()
                             for col in valid_questions:
@@ -566,7 +562,7 @@ class Visualizer:
                                             mask = (df[col] >= min_val) & (df[col] <= max_val)
                                             label_count += mask.sum()
                                 
-                                # 割合の計算を修正（全回答数ではなく、有効な回答数で計算）
+                                # 有効な回答数で計算
                                 valid_responses = sum(1 for _ in df.iterrows()) * len(valid_questions)
                                 group_results[label] = {}
                                 group_results[label]['全体'] = {
