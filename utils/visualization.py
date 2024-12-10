@@ -308,8 +308,8 @@ class Visualizer:
         # 全データの平均値を計算（デバッグ用にprint文を追加）
         all_importance_means = [trace.x[0] for trace in fig.data]
         all_satisfaction_means = [trace.y[0] for trace in fig.data]
-        overall_importance_mean = sum(all_importance_means) / len(all_importance_means)
-        overall_satisfaction_mean = sum(all_satisfaction_means) / len(all_satisfaction_means)
+        overall_importance_mean = round(sum(all_importance_means) / len(all_importance_means), 1)
+        overall_satisfaction_mean = round(sum(all_satisfaction_means) / len(all_satisfaction_means), 1)
         
         print(f"Debug - 重要度の平均値: {overall_importance_mean}")
         print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
