@@ -297,12 +297,28 @@ class Visualizer:
                         y_axis: y_axis
                     }
                 )
+
+                # X軸とY軸の平均値を計算
+                x_mean = scatter_df[x_axis].mean()
+                y_mean = scatter_df[y_axis].mean()
+
+                # 平均値の位置に点線を追加
+                fig.add_hline(y=y_mean, line_dash="dash", line_color="orange", annotation_text="平均値")
+                fig.add_vline(x=x_mean, line_dash="dash", line_color="orange", annotation_text="平均値")
                 
                 fig.update_layout(
                     title=f"{x_axis}と{y_axis}の相関",
                     height=500,
-                    xaxis_title=f"{x_axis}の平均値",
-                    yaxis_title=f"{y_axis}の平均値"
+                    xaxis=dict(
+                        title=f"{x_axis}の平均値",
+                        tickmode='linear',
+                        dtick=1  # 目盛りの間隔を1に設定
+                    ),
+                    yaxis=dict(
+                        title=f"{y_axis}の平均値",
+                        tickmode='linear',
+                        dtick=1  # 目盛りの間隔を1に設定
+                    )
                 )
                 
                 st.plotly_chart(fig)
