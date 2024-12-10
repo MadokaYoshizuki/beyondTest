@@ -417,8 +417,7 @@ class Visualizer:
                      x1=1,
                      y1=1,
                      line=dict(color='rgba(128, 128, 128, 1)', width=1))
-            ]
-        )
+            ])
 
         # ラベルの位置を自動調整
         fig.update_traces(textposition='top center',
