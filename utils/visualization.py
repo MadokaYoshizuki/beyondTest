@@ -335,6 +335,10 @@ class Visualizer:
                            "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
                            "<extra></extra>"))
             
+            # 点の位置から少し離れた開始位置を計算
+            start_x_offset = 5 if text_pos in ["top right", "bottom right"] else -5
+            start_y_offset = 5 if text_pos in ["top right", "top left"] else -5
+            
             # ラベルを引き出し線付きのアノテーションとして追加（背景なし）
             fig.add_annotation(
                 x=data['importance_mean'],
@@ -344,9 +348,12 @@ class Visualizer:
                 arrowhead=0,  # 矢印なしの直線
                 arrowwidth=1,  # 線を細く
                 arrowcolor="grey",
-                ax=40 if text_pos in ["top right", "bottom right"] else -40,
-                ay=30 if text_pos in ["top right", "top left"] else -30,  # 垂直方向の距離を調整
-                font=dict(size=12)
+                xshift=start_x_offset,  # 開始位置をずらす
+                yshift=start_y_offset,
+                ax=50 if text_pos in ["top right", "bottom right"] else -50,  # テキストに合わせて終点を調整
+                ay=40 if text_pos in ["top right", "top left"] else -40,
+                font=dict(size=12),
+                align="left" if text_pos in ["top right", "bottom right"] else "right"  # テキストの配置を調整
             )
         
         print(f"Debug - 重要度の平均値: {overall_importance_mean}")
