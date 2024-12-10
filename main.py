@@ -30,14 +30,16 @@ def main():
     ]
 
     # サイドバーにタイトルを追加
-    st.sidebar.title("意識調査データ分析")
+    st.sidebar.title("意識調査データ分析ダッシュボード")
     st.sidebar.markdown("---")  # 区切り線を追加
-    st.session_state.current_menu = st.sidebar.radio("メニュー", menu_options)
+    st.sidebar.markdown("### メニュー")
+    st.session_state.current_menu = st.sidebar.radio("", menu_options)
 
     # 各セクションの条件分岐
     if st.session_state.current_menu == "1.データアップロード":
-        st.header("1. データアップロード")
-        st.write("時期の古いものから順にしてください")
+        st.markdown("## 1. データアップロード")
+        st.markdown("##### ※ 時期の古いものから順にしてください")
+        st.markdown("---")
         
         # セッション状態の初期化
         if 'upload_status' not in st.session_state:
@@ -98,7 +100,8 @@ def main():
                     st.warning("有効なデータがありません。日付とファイルの両方を指定してください。")
 
     elif st.session_state.current_menu == "2.データ分析":
-        st.header("2. データ分析")
+        st.markdown("## 2. データ分析")
+        st.markdown("---")
         
         # Display raw data and analysis
         if hasattr(st.session_state.data_processor, 'dfs'):
@@ -122,7 +125,8 @@ def main():
             st.info("データを読み込んでください。")
 
     elif st.session_state.current_menu == "3.設定":
-        st.header("3. 設定")
+        st.markdown("## 3. 設定")
+        st.markdown("---")
         
         # Column mapping with grid layout
         with st.expander("列名の設定"):
@@ -390,21 +394,24 @@ def main():
                 st.info("データを読み込むと、値グループ化の設定が可能になります。")
 
     elif st.session_state.current_menu == "4.集計":
-        st.header("4. 集計")
+        st.markdown("## 4. 集計")
+        st.markdown("---")
         st.session_state.visualizer.display_numerical_tables(
             st.session_state.data_processor.dfs,
             st.session_state.config_manager
         )
 
     elif st.session_state.current_menu == "5.可視化":
-        st.header("5. 可視化")
+        st.markdown("## 5. 可視化")
+        st.markdown("---")
         st.session_state.visualizer.display_dashboard(
             st.session_state.data_processor.dfs,
             st.session_state.config_manager
         )
 
     elif st.session_state.current_menu == "6.PDF出力":
-        st.header("6. PDF出力")
+        st.markdown("## 6. PDF出力")
+        st.markdown("---")
         if st.button("PDF出力"):
             pdf_generator = PDFGenerator()
             pdf_path = pdf_generator.generate_pdf(
