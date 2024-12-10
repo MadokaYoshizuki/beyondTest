@@ -615,7 +615,7 @@ class Visualizer:
                                         result_df_t.index.name = '属性'
                                         st.dataframe(result_df_t)
         
-        # Excelファイルの保存
+        # Excelファイルの保存用のデータ準備
         excel_data = {
             "質問ごとの分析_平均": results_mean,
             "質問ごとの分析_100点換算": results_score,
@@ -626,5 +626,71 @@ class Visualizer:
                 "グループごとの分析_平均": group_mean_df,
                 "グループごとの分析_100点換算": group_score_df
             })
+            
+        # 値グループ分析結果の追加
+        if value_groups:
+            # 数値回答の質問を取得
+            numeric_cols = df.select_dtypes(include=['number']).columns
+            
+            # 質問ごとの値グループ分析
+            question_value_groups = {}
+            for col in numeric_cols:
+                if col in value_groups:
+                    value_group_results = {}
+                    total_count = len(df)
+                    
+                    # 全体の集計
+                    for range_str, label in value_groups[col].items():
+                        min_val, max_val = map(float, range_str.split('-'))
+                        mask = (df[col] >= min_val) & (df[col] <= max_val)
+                        count = mask.sum()
+                        
+                        if label not in value_group_results:
+                            value_group_results[label] = {}
+                        
+                        value_group_results[label]['全体'] = {
+                            '件数': count,
+                            '割合': f"{(count / total_count) * 100:.1f}"
+                        }
+                        
+                        # 属性値ごとの集計
+                        if attribute != "全体":
+                            for attr_value in df[attribute].unique():
+                                subset = df[df[attribute] == attr_value]
+                                subset_mask = (subset[col] >= min_val) & (subset[col] <= max_val)
+                                subset_count = subset_mask.sum()
+                                
+                                value_group_results[label][attr_value] = {
+                                    '件数': subset_count,
+                                    '割合': f"{(subset_count / len(subset)) * 100:.1f}"
+                                }
+                    
+                    # DataFrameの作成
+                    columns = ['全体'] + (list(df[attribute].unique()) if attribute != "全体" else [])
+                    
+                    # 件数のDataFrame
+                    counts_df = pd.DataFrame({
+                        label: {
+                            col: data.get(col, {}).get('件数', 0)
+                            for col in columns
+                        }
+                        for label, data in value_group_results.items()
+                    }).T
+                    
+                    # 割合のDataFrame
+                    percentages_df = pd.DataFrame({
+                        label: {
+                            col: data.get(col, {}).get('割合', '0.0')
+                            for col in columns
+                        }
+                        for label, data in value_group_results.items()
+                    }).T
+                    
+                    display_name = column_names.get(col, col)
+                    question_value_groups[f"{display_name}_件数"] = counts_df
+                    question_value_groups[f"{display_name}_割合"] = percentages_df
+            
+            # Excelデータに値グループ分析結果を追加
+            excel_data.update(question_value_groups)
         
         self._save_to_excel(excel_data, f"numeric_analysis_{attribute}")
