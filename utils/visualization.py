@@ -58,11 +58,11 @@ class Visualizer:
         
         # 2. 回答の件数と構成比の帯グラフ
         st.write("2. 回答の分布")
-        self._display_value_distribution(df_filtered, column_names)
+        self._display_value_distribution(df, column_names)
         
         # 3. 平均値の散布図
         st.write("3. 平均値の散布図")
-        self._display_scatter_plot(df_filtered, column_names)
+        self._display_scatter_plot(df, column_names)
         
         # 数値回答（複数回答）の分析
         st.subheader("【数値回答（複数回答）】")
