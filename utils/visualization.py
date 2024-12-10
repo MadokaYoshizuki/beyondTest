@@ -295,8 +295,62 @@ class Visualizer:
                     marker=dict(
                         size=12,
                         symbol='circle'
-                    )
+                    ),
+                    hovertemplate="<b>%{text}</b><br>" +
+                                "重要度: %{x:.1f}<br>" +
+                                "満足度: %{y:.1f}<br>" +
+                                "<extra></extra>"
                 ))
+        
+        # 全データの平均値を計算
+        all_importance_means = [trace.x[0] for trace in fig.data]
+        all_satisfaction_means = [trace.y[0] for trace in fig.data]
+        overall_importance_mean = sum(all_importance_means) / len(all_importance_means)
+        overall_satisfaction_mean = sum(all_satisfaction_means) / len(all_satisfaction_means)
+        
+        # X軸の平均値の線を追加
+        fig.add_shape(
+            type='line',
+            x0=overall_importance_mean,
+            x1=overall_importance_mean,
+            y0=min(all_satisfaction_means) - 0.5,
+            y1=max(all_satisfaction_means) + 0.5,
+            line=dict(
+                color='orange',
+                width=1,
+                dash='dot'
+            )
+        )
+        
+        # Y軸の平均値の線を追加
+        fig.add_shape(
+            type='line',
+            x0=min(all_importance_means) - 0.5,
+            x1=max(all_importance_means) + 0.5,
+            y0=overall_satisfaction_mean,
+            y1=overall_satisfaction_mean,
+            line=dict(
+                color='orange',
+                width=1,
+                dash='dot'
+            )
+        )
+        
+        # 平均値のテキストを追加
+        fig.add_annotation(
+            x=overall_importance_mean,
+            y=min(all_satisfaction_means) - 0.5,
+            text=f'平均：{overall_importance_mean:.1f}',
+            showarrow=False,
+            yshift=-30
+        )
+        fig.add_annotation(
+            x=min(all_importance_means) - 0.5,
+            y=overall_satisfaction_mean,
+            text=f'平均：{overall_satisfaction_mean:.1f}',
+            showarrow=False,
+            xshift=-50
+        )
         
         # レイアウトの設定
         fig.update_layout(
@@ -306,19 +360,48 @@ class Visualizer:
                 showgrid=True,
                 gridwidth=1,
                 gridcolor='rgba(128, 128, 128, 0.2)',
-                zeroline=False
+                zeroline=False,
+                showline=True,
+                linewidth=1,
+                linecolor='rgba(128, 128, 128, 1)'
             ),
             yaxis=dict(
                 title='満足度',
                 showgrid=True,
                 gridwidth=1,
                 gridcolor='rgba(128, 128, 128, 0.2)',
-                zeroline=False
+                zeroline=False,
+                showline=True,
+                linewidth=1,
+                linecolor='rgba(128, 128, 128, 1)'
             ),
             width=800,
             height=600,
             showlegend=True,
-            plot_bgcolor='white'
+            plot_bgcolor='white',
+            # プロットエリアの枠線を追加
+            shapes=[
+                dict(
+                    type='rect',
+                    xref='paper',
+                    yref='paper',
+                    x0=0,
+                    y0=0,
+                    x1=1,
+                    y1=1,
+                    line=dict(
+                        color='rgba(128, 128, 128, 1)',
+                        width=1
+                    )
+                )
+            ]
+        )
+        
+        # ラベルの位置を自動調整
+        fig.update_traces(
+            textposition='top center',
+            textfont=dict(size=12),
+            cliponaxis=False
         )
         
         st.plotly_chart(fig)
