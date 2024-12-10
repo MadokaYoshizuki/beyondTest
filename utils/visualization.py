@@ -316,16 +316,16 @@ class Visualizer:
         print(f"Debug - 重要度の値一覧: {all_importance_means}")
         print(f"Debug - 満足度の値一覧: {all_satisfaction_means}")
 
-        # データの範囲を取得して平均値の線の範囲を設定
-        x_range = [min(all_importance_means) - 0.5, max(all_importance_means) + 0.5]
-        y_range = [min(all_satisfaction_means) - 0.5, max(all_satisfaction_means) + 0.5]
+        # 軸の範囲を設定
+        x_min, x_max = 2.0, 3.2  # 重要度の範囲
+        y_min, y_max = 2.0, 3.6  # 満足度の範囲
 
         # 平均値の点線を追加
         # 満足度の平均値（横線）
         fig.add_shape(
             type="line",
-            x0=x_range[0],  # データの範囲の最小値
-            x1=x_range[1],  # データの範囲の最大値
+            x0=x_min,
+            x1=x_max,
             y0=overall_satisfaction_mean,
             y1=overall_satisfaction_mean,
             xref="x",
@@ -337,17 +337,17 @@ class Visualizer:
             type="line",
             x0=overall_importance_mean,
             x1=overall_importance_mean,
-            y0=y_range[0],  # データの範囲の最小値
-            y1=y_range[1],  # データの範囲の最大値
+            y0=y_min,
+            y1=y_max,
             xref="x",
             yref="y",
             line=dict(color="orange", width=1, dash="dot")
         )
 
-        # 平均値のテキストを個別のアノテーションとして追加（プロットエリア内に収める）
+        # 平均値のテキストを個別のアノテーションとして追加
         fig.add_annotation(
             text=f"満足度平均：{overall_satisfaction_mean:.1f}",
-            x=x_range[0] + 0.1,  # データの範囲の最小値からやや右
+            x=x_min + 0.05,
             y=overall_satisfaction_mean,
             xref="x",
             yref="y",
@@ -358,7 +358,7 @@ class Visualizer:
         fig.add_annotation(
             text=f"重要度平均：{overall_importance_mean:.1f}",
             x=overall_importance_mean,
-            y=y_range[0] + 0.1,  # データの範囲の最小値からやや上
+            y=y_min + 0.05,
             xref="x",
             yref="y",
             showarrow=False,
@@ -369,22 +369,28 @@ class Visualizer:
         # レイアウトの設定
         fig.update_layout(
             title='重要度-満足度分析',
-            xaxis=dict(title='重要度',
-                       showgrid=True,
-                       gridwidth=1,
-                       gridcolor='rgba(128, 128, 128, 0.2)',
-                       zeroline=False,
-                       showline=True,
-                       linewidth=1,
-                       linecolor='rgba(128, 128, 128, 1)'),
-            yaxis=dict(title='満足度',
-                       showgrid=True,
-                       gridwidth=1,
-                       gridcolor='rgba(128, 128, 128, 0.2)',
-                       zeroline=False,
-                       showline=True,
-                       linewidth=1,
-                       linecolor='rgba(128, 128, 128, 1)'),
+            xaxis=dict(
+                title='重要度',
+                range=[x_min, x_max],
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+                zeroline=False,
+                showline=True,
+                linewidth=1,
+                linecolor='rgba(128, 128, 128, 1)'
+            ),
+            yaxis=dict(
+                title='満足度',
+                range=[y_min, y_max],
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128, 128, 128, 0.2)',
+                zeroline=False,
+                showline=True,
+                linewidth=1,
+                linecolor='rgba(128, 128, 128, 1)'
+            ),
             width=800,
             height=600,
             showlegend=True,
