@@ -305,8 +305,9 @@ class Visualizer:
                                "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
                                "<extra></extra>"))
 
-        # 重要度-満足度のペアから直接平均値を計算
-        importance_satisfaction_data = []
+        # 重要度と満足度の平均値を計算
+        importance_means = []
+        satisfaction_means = []
         for pair_name, pair_data in importance_satisfaction_pairs.items():
             importance_col = pair_data['importance']
             satisfaction_col = pair_data['satisfaction']
@@ -317,15 +318,17 @@ class Visualizer:
             if not valid_data.empty:
                 importance_mean = valid_data[importance_col].mean()
                 satisfaction_mean = valid_data[satisfaction_col].mean()
-                importance_satisfaction_data.append((importance_mean, satisfaction_mean))
-
-        # 全体の平均値を計算
-        overall_importance_mean = round(sum(x[0] for x in importance_satisfaction_data) / len(importance_satisfaction_data), 1)
-        overall_satisfaction_mean = round(sum(x[1] for x in importance_satisfaction_data) / len(importance_satisfaction_data), 1)
+                importance_means.append(importance_mean)
+                satisfaction_means.append(satisfaction_mean)
+        
+        # 全体の平均値を計算（小数点第1位で丸める）
+        overall_importance_mean = round(sum(importance_means) / len(importance_means), 1)
+        overall_satisfaction_mean = round(sum(satisfaction_means) / len(satisfaction_means), 1)
         
         print(f"Debug - 重要度の平均値: {overall_importance_mean}")
         print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
-        print(f"Debug - 重要度と満足度のデータ: {importance_satisfaction_data}")
+        print(f"Debug - 重要度の値一覧: {importance_means}")
+        print(f"Debug - 満足度の値一覧: {satisfaction_means}")
 
         # 軸の範囲を設定
         x_min, x_max = 2.0, 3.2  # 重要度の範囲
