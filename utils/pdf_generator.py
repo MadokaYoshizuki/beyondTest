@@ -19,12 +19,11 @@ class PDFGenerator:
         # 日本語フォントの設定
         self.font_name = 'Helvetica'
         try:
-            # システムフォントパスを探索
-            font_paths = [
-                '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
-                '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
-                'NotoSansCJKjp-Regular.ttf'
-            ]
+            # プロジェクト内のフォントを使用
+            font_path = 'fonts/NotoSansCJK-Regular.ttc'
+            if not os.path.exists('fonts'):
+                os.makedirs('fonts')
+                st.info("フォントファイルをアップロードしてください。")
             
             for font_path in font_paths:
                 if os.path.exists(font_path):
