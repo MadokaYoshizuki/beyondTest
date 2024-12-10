@@ -174,9 +174,9 @@ class Visualizer:
         st.write("2. 回答の分布")
         self._display_value_distribution(df, column_names)
         
-        # 3. 平均値の散布図
-        st.write("3. 平均値の散布図")
-        self._display_scatter_plot(df, column_names)
+        # 3. 質問カテゴリ間の散布図
+        st.write("3. 質問カテゴリ間の散布図")
+        self._display_scatter_plot(df, column_names, question_groups)
 
     def _display_correlation_heatmap(self, df, column_names, question_groups=None):
         numeric_columns = df.select_dtypes(include=['number']).columns
@@ -256,39 +256,53 @@ class Visualizer:
         else:
             st.info("数値データが見つかりませんでした。")
 
-    def _display_scatter_plot(self, df, column_names):
-        numeric_columns = df.select_dtypes(include=['number']).columns
-        if len(numeric_columns) >= 2:
+    def _display_scatter_plot(self, df, column_names, question_groups=None):
+        if not question_groups:
+            st.info("質問グループが設定されていません。散布図を表示するには質問グループの設定が必要です。")
+            return
+
+        # 各質問グループの平均値を計算
+        group_means = {}
+        for group_name, questions in question_groups.items():
+            numeric_questions = [q for q in questions if q in df.columns and pd.api.types.is_numeric_dtype(df[q])]
+            if numeric_questions:
+                # 各回答者ごとの質問グループの平均値を計算
+                group_means[group_name] = df[numeric_questions].mean(axis=1)
+
+        if len(group_means) >= 2:
+            # 平均値をデータフレームに変換
+            scatter_df = pd.DataFrame(group_means)
+            
             col1, col2 = st.columns(2)
             with col1:
                 x_axis = st.selectbox(
-                    "X軸の項目:",
-                    numeric_columns,
-                    format_func=lambda x: column_names.get(x, x),
+                    "X軸の質問カテゴリ:",
+                    list(group_means.keys()),
                     key="scatter_x_axis"
                 )
             with col2:
                 y_axis = st.selectbox(
-                    "Y軸の項目:",
-                    numeric_columns,
-                    format_func=lambda x: column_names.get(x, x),
+                    "Y軸の質問カテゴリ:",
+                    list(group_means.keys()),
                     key="scatter_y_axis"
                 )
             
             if x_axis and y_axis:
                 fig = px.scatter(
-                    df,
+                    scatter_df,
                     x=x_axis,
                     y=y_axis,
                     labels={
-                        x_axis: column_names.get(x_axis, x_axis),
-                        y_axis: column_names.get(y_axis, y_axis)
+                        x_axis: x_axis,
+                        y_axis: y_axis
                     }
                 )
                 
                 fig.update_layout(
-                    title=f"{column_names.get(x_axis, x_axis)}と{column_names.get(y_axis, y_axis)}の相関",
-                    height=500
+                    title=f"{x_axis}と{y_axis}の相関",
+                    height=500,
+                    xaxis_title=f"{x_axis}の平均値",
+                    yaxis_title=f"{y_axis}の平均値"
                 )
                 
                 st.plotly_chart(fig)
