@@ -15,17 +15,19 @@ import streamlit as st
 from datetime import datetime
 
 class PDFGenerator:
-    def __init__(self):
+    def __init__(self, config_manager=None):
         # 日本語フォントの設定
         self.font_name = 'Helvetica'
         try:
-            # プロジェクト内のフォントを使用
-            font_path = 'fonts/NotoSansCJK-Regular.ttc'
-            if os.path.exists(font_path):
+            # configからフォント設定を読み込む
+            font_config = config_manager.config.get('pdf_font', {})
+            if font_config and os.path.exists(font_config.get('path', '')):
                 try:
-                    pdfmetrics.registerFont(TTFont('NotoSans', font_path))
-                    self.font_name = 'NotoSans'
-                    st.success("日本語フォントを正常に読み込みました")
+                    font_path = font_config['path']
+                    font_name = os.path.splitext(font_config['filename'])[0]
+                    pdfmetrics.registerFont(TTFont(font_name, font_path))
+                    self.font_name = font_name
+                    st.success(f"日本語フォント '{font_config['filename']}' を正常に読み込みました")
                 except Exception as e:
                     st.error(f"フォントの読み込み中にエラーが発生しました: {str(e)}")
             else:

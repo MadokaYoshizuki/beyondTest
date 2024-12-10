@@ -520,14 +520,23 @@ def main():
                     os.makedirs('fonts')
                 
                 # フォントファイルの保存
-                font_path = os.path.join('fonts', 'NotoSansCJK-Regular.ttc')
+                font_filename = font_file.name
+                font_path = os.path.join('fonts', font_filename)
                 with open(font_path, 'wb') as f:
                     f.write(font_file.getvalue())
-                st.success("フォントファイルを保存しました")
+                
+                # 設定の更新
+                st.session_state.config_manager.config['pdf_font'] = {
+                    'filename': font_filename,
+                    'path': font_path
+                }
+                st.session_state.config_manager.save_config()
+                st.success(f"フォントファイル '{font_filename}' を保存しました")
             
             # 現在のフォント状態を確認
-            if os.path.exists('fonts/NotoSansCJK-Regular.ttc'):
-                st.info("日本語フォントが利用可能です")
+            current_font = st.session_state.config_manager.config.get('pdf_font', {})
+            if current_font and os.path.exists(current_font.get('path', '')):
+                st.info(f"日本語フォント '{current_font['filename']}' が利用可能です")
             else:
                 st.warning("日本語フォントがアップロードされていません。PDFの日本語が正しく表示されない可能性があります。")
         
@@ -623,7 +632,7 @@ def main():
             
             # PDF生成ボタン
             if st.button("PDF出力"):
-                pdf_generator = PDFGenerator()
+                pdf_generator = PDFGenerator(st.session_state.config_manager)
                 pdf_path = pdf_generator.generate_pdf(
                     st.session_state.data_processor.dfs,
                     st.session_state.config_manager,
