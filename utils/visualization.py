@@ -463,7 +463,8 @@ class Visualizer:
             st.write("値グループ分析結果")
             
             # 質問ごとの値グループ分析
-            st.subheader("1. 質問ごとの値グループ分析")
+            st.write("### 1. 質問ごとの値グループ分析")
+            st.markdown("---")
             
             # 数値回答の質問を取得
             numeric_cols = df.select_dtypes(include=['number']).columns
@@ -530,7 +531,8 @@ class Visualizer:
             
             # 質問グループごとの値グループ分析
             if question_groups:
-                st.subheader("2. 質問グループごとの値グループ分析")
+                st.write("### 2. 質問グループごとの値グループ分析")
+                st.markdown("---")
                 
                 for group_name, questions in question_groups.items():
                     # グループ内の数値列かつ値グループが設定されている列のみを処理
@@ -544,7 +546,7 @@ class Visualizer:
                         if not numeric_questions:
                             st.info("このグループには数値回答の質問が含まれていません。")
                         elif not valid_questions:
-                            st.info("このグループの質問には値グループが設定されていません。値グループを設定してから分析を行ってください。")
+                            st.info("このグループの質問には値グループが設定されていません。")
                     if valid_questions:
                         with st.expander(f"● {group_name}"):
                             # 各値グループのラベルを収集
