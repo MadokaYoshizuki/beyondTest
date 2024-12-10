@@ -80,50 +80,76 @@
         "Q.19": 5
     },
     "importance_satisfaction_pairs": {
-        "人間関係": {
+        "\u4eba\u9593\u95a2\u4fc2": {
             "importance": "Q.1",
             "satisfaction": "Q.2"
         },
-        "キャリアアップ環境": {
+        "\u30ad\u30e3\u30ea\u30a2\u30a2\u30c3\u30d7\u74b0\u5883": {
             "importance": "Q.5",
             "satisfaction": "Q.7"
         },
-        "人材育成": {
+        "\u4eba\u6750\u80b2\u6210": {
             "importance": "Q.10",
             "satisfaction": "Q.11"
         },
-        "業務効率": {
+        "\u696d\u52d9\u52b9\u7387": {
             "importance": "Q.13",
             "satisfaction": "Q.14"
         },
-        "職場環境": {
+        "\u8077\u5834\u74b0\u5883": {
             "importance": "Q.17",
             "satisfaction": "Q.19"
         }
     },
     "pdf_settings": {
-        "デフォルト設定": {
-            "title": "基本レポート",
+        "\u30c7\u30d5\u30a9\u30eb\u30c8\u8a2d\u5b9a": {
+            "title": "\u57fa\u672c\u30ec\u30dd\u30fc\u30c8",
             "sections": [
                 {
-                    "type": "数値表",
-                    "title": "属性別平均値一覧",
+                    "type": "\u6570\u5024\u8868",
+                    "title": "\u5c5e\u6027\u5225\u5e73\u5747\u5024\u4e00\u89a7",
                     "options": {
                         "show_group_analysis": true,
                         "show_question_analysis": true
                     }
                 },
                 {
-                    "type": "相関分析",
-                    "title": "質問間の相関分析",
+                    "type": "\u76f8\u95a2\u5206\u6790",
+                    "title": "\u8cea\u554f\u9593\u306e\u76f8\u95a2\u5206\u6790",
                     "options": {
-                        "mode": "質問間の相関",
-                        "group": "すべての質問"
+                        "mode": "\u8cea\u554f\u9593\u306e\u76f8\u95a2",
+                        "group": "\u3059\u3079\u3066\u306e\u8cea\u554f"
                     }
                 },
                 {
-                    "type": "重要度満足度",
-                    "title": "重要度-満足度分析",
+                    "type": "\u91cd\u8981\u5ea6\u6e80\u8db3\u5ea6",
+                    "title": "\u91cd\u8981\u5ea6-\u6e80\u8db3\u5ea6\u5206\u6790",
+                    "options": {}
+                }
+            ]
+        },
+        "\u65b0\u898f\u8a2d\u5b9a1": {
+            "title": "\u65b0\u898f\u8a2d\u5b9a1",
+            "sections": [
+                {
+                    "type": "\u6570\u5024\u8868",
+                    "title": "\u5c5e\u6027\u5225\u5e73\u5747\u5024\u4e00\u89a7",
+                    "options": {
+                        "show_group_analysis": true,
+                        "show_question_analysis": true
+                    }
+                },
+                {
+                    "type": "\u76f8\u95a2\u5206\u6790",
+                    "title": "\u8cea\u554f\u9593\u306e\u76f8\u95a2\u5206\u6790",
+                    "options": {
+                        "mode": "\u8cea\u554f\u9593\u306e\u76f8\u95a2",
+                        "group": "\u3059\u3079\u3066\u306e\u8cea\u554f"
+                    }
+                },
+                {
+                    "type": "\u91cd\u8981\u5ea6\u6e80\u8db3\u5ea6",
+                    "title": "\u91cd\u8981\u5ea6-\u6e80\u8db3\u5ea6\u5206\u6790",
                     "options": {}
                 }
             ]

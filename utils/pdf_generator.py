@@ -25,36 +25,31 @@ class PDFGenerator:
 
         # スタイルの設定
         self.styles = getSampleStyleSheet()
+        
+        # カスタムスタイルの追加
         self.styles.add(ParagraphStyle(
             name='JapaneseParagraph',
             fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
             fontSize=10,
             leading=14
         ))
-        self.styles.add(ParagraphStyle(
-            name='Heading1',
-            fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
-            fontSize=16,
-            leading=20,
-            spaceBefore=20,
-            spaceAfter=10
-        ))
-        self.styles.add(ParagraphStyle(
-            name='Heading2',
-            fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
-            fontSize=14,
-            leading=18,
-            spaceBefore=15,
-            spaceAfter=8
-        ))
-        self.styles.add(ParagraphStyle(
-            name='Heading3',
-            fontName='NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica',
-            fontSize=12,
-            leading=16,
-            spaceBefore=10,
-            spaceAfter=5
-        ))
+        
+        # 既存のヘッディングスタイルを日本語フォントで上書き
+        for style_name in ['Title', 'Heading1', 'Heading2', 'Heading3']:
+            if style_name in self.styles:
+                self.styles[style_name].fontName = 'NotoSans' if 'NotoSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+                if style_name == 'Title':
+                    self.styles[style_name].fontSize = 24
+                    self.styles[style_name].leading = 28
+                elif style_name == 'Heading1':
+                    self.styles[style_name].fontSize = 16
+                    self.styles[style_name].leading = 20
+                elif style_name == 'Heading2':
+                    self.styles[style_name].fontSize = 14
+                    self.styles[style_name].leading = 18
+                elif style_name == 'Heading3':
+                    self.styles[style_name].fontSize = 12
+                    self.styles[style_name].leading = 16
 
 
     def _create_title_page(self):
