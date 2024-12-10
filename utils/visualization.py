@@ -170,21 +170,74 @@ class Visualizer:
                 total_count = len(df)
                 percentages = (value_counts / total_count) * 100
                 
-                # 累積位置の計算
+                # 回答値を3つのグループに分類
+                values = value_counts.index.tolist()
+                if len(values) >= 3:
+                    negative_values = values[:1]  # 最小値（否定的）
+                    neutral_values = values[1:-1]  # 中間値（中立）
+                    positive_values = values[-1:]  # 最大値（肯定的）
+                else:
+                    # 値が3未満の場合は均等に分配
+                    third = len(values) // 3
+                    negative_values = values[:third]
+                    neutral_values = values[third:-third] if third > 0 else []
+                    positive_values = values[-third:] if third > 0 else values[-1:]
+
+                # 色分けして表示
+                # 否定的回答（赤）
                 cumulative = 0
-                for value, percentage in percentages.items():
-                    fig.add_trace(go.Bar(
-                        name=f"{value}",
-                        x=[percentage],
-                        y=[i],
-                        orientation='h',
-                        text=f"{percentage:.1f}%",
-                        textposition='auto',
-                        offset=cumulative,
-                        customdata=[[value, int(value_counts[value])]],
-                        hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
-                    ))
-                    cumulative += percentage
+                for value in negative_values:
+                    if value in value_counts.index:
+                        percentage = (value_counts[value] / total_count) * 100
+                        fig.add_trace(go.Bar(
+                            name=f"{value}",
+                            x=[percentage],
+                            y=[i],
+                            orientation='h',
+                            text=f"{percentage:.1f}%",
+                            textposition='auto',
+                            marker_color='rgb(255, 65, 54)',  # 赤
+                            offset=cumulative,
+                            customdata=[[value, int(value_counts[value])]],
+                            hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
+                        ))
+                        cumulative += percentage
+
+                # 中立的回答（グレー）
+                for value in neutral_values:
+                    if value in value_counts.index:
+                        percentage = (value_counts[value] / total_count) * 100
+                        fig.add_trace(go.Bar(
+                            name=f"{value}",
+                            x=[percentage],
+                            y=[i],
+                            orientation='h',
+                            text=f"{percentage:.1f}%",
+                            textposition='auto',
+                            marker_color='rgb(190, 190, 190)',  # グレー
+                            offset=cumulative,
+                            customdata=[[value, int(value_counts[value])]],
+                            hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
+                        ))
+                        cumulative += percentage
+
+                # 肯定的回答（青）
+                for value in positive_values:
+                    if value in value_counts.index:
+                        percentage = (value_counts[value] / total_count) * 100
+                        fig.add_trace(go.Bar(
+                            name=f"{value}",
+                            x=[percentage],
+                            y=[i],
+                            orientation='h',
+                            text=f"{percentage:.1f}%",
+                            textposition='auto',
+                            marker_color='rgb(93, 164, 214)',  # 青
+                            offset=cumulative,
+                            customdata=[[value, int(value_counts[value])]],
+                            hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
+                        ))
+                        cumulative += percentage
             
             fig.update_layout(
                 title="全質問の回答分布",
@@ -194,8 +247,11 @@ class Visualizer:
                 yaxis_title="質問項目",
                 yaxis={'ticktext': y_labels, 'tickvals': y_positions},
                 height=max(400, len(numeric_columns) * 30),
-                margin=dict(l=200),  # 左マージンを広げて質問名を表示
-                legend_title="回答値"
+                margin=dict(l=300),  # 左マージンを広げて質問名を表示
+                legend_title="回答値",
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                bargap=0.2
             )
             
             st.plotly_chart(fig, use_container_width=True)
