@@ -276,10 +276,6 @@ class Visualizer:
             st.info("重要度-満足度の対応関係が設定されていません。")
             return
 
-        # データ収集用の配列を初期化
-        temp_data = []
-        importance_satisfaction_data = []
-
         # 散布図を作成
         fig = go.Figure()
 
@@ -296,65 +292,36 @@ class Visualizer:
                 importance_mean = valid_data[importance_col].mean()
                 satisfaction_mean = valid_data[satisfaction_col].mean()
 
-                # データを一時保存
-                temp_data.append({
-                    'name': pair_name,
-                    'importance_mean': importance_mean,
-                    'satisfaction_mean': satisfaction_mean
-                })
+                # データポイントの追加
+                fig.add_trace(
+                    go.Scatter(x=[importance_mean],
+                               y=[satisfaction_mean],
+                               mode='markers+text',
+                               name=pair_name,
+                               text=[pair_name],
+                               textposition="top center",
+                               marker=dict(size=12, symbol='circle'),
+                               hovertemplate="<b>%{text}</b><br>" +
+                               "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
+                               "<extra></extra>"))
+
+        # 重要度-満足度のペアから直接平均値を計算
+        importance_satisfaction_data = []
+        for pair_name, pair_data in importance_satisfaction_pairs.items():
+            importance_col = pair_data['importance']
+            satisfaction_col = pair_data['satisfaction']
+            
+            # 数値データのみを抽出
+            valid_data = df[[importance_col, satisfaction_col]].dropna()
+            
+            if not valid_data.empty:
+                importance_mean = valid_data[importance_col].mean()
+                satisfaction_mean = valid_data[satisfaction_col].mean()
                 importance_satisfaction_data.append((importance_mean, satisfaction_mean))
 
         # 全体の平均値を計算
         overall_importance_mean = round(sum(x[0] for x in importance_satisfaction_data) / len(importance_satisfaction_data), 1)
         overall_satisfaction_mean = round(sum(x[1] for x in importance_satisfaction_data) / len(importance_satisfaction_data), 1)
-        
-        print(f"Debug - 重要度の平均値: {overall_importance_mean}")
-        print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
-        print(f"Debug - 重要度と満足度のデータ: {importance_satisfaction_data}")
-
-        # データポイントとラベルを追加
-        for data in temp_data:
-            # ラベルの配置位置を計算（重なりを避けるため）
-            text_pos = "top center"  # デフォルトの位置
-            if data['importance_mean'] < overall_importance_mean and data['satisfaction_mean'] < overall_satisfaction_mean:
-                text_pos = "bottom left"
-            elif data['importance_mean'] > overall_importance_mean and data['satisfaction_mean'] < overall_satisfaction_mean:
-                text_pos = "bottom right"
-            elif data['importance_mean'] < overall_importance_mean and data['satisfaction_mean'] > overall_satisfaction_mean:
-                text_pos = "top left"
-            elif data['importance_mean'] > overall_importance_mean and data['satisfaction_mean'] > overall_satisfaction_mean:
-                text_pos = "top right"
-
-            fig.add_trace(
-                go.Scatter(x=[data['importance_mean']],
-                           y=[data['satisfaction_mean']],
-                           mode='markers',  # テキストは個別のアノテーションとして追加
-                           name=data['name'],
-                           marker=dict(size=12, symbol='circle'),
-                           hovertemplate="<b>%{text}</b><br>" +
-                           "重要度: %{x:.1f}<br>" + "満足度: %{y:.1f}<br>" +
-                           "<extra></extra>"))
-            
-            # 点の位置から少し離れた開始位置を計算
-            start_x_offset = 5 if text_pos in ["top right", "bottom right"] else -5
-            start_y_offset = 5 if text_pos in ["top right", "top left"] else -5
-            
-            # ラベルを引き出し線付きのアノテーションとして追加（背景なし）
-            fig.add_annotation(
-                x=data['importance_mean'],
-                y=data['satisfaction_mean'],
-                text=data['name'],
-                showarrow=True,
-                arrowhead=0,  # 矢印なしの直線
-                arrowwidth=1,  # 線を細く
-                arrowcolor="grey",
-                xshift=start_x_offset,  # 開始位置をずらす
-                yshift=start_y_offset,
-                ax=50 if text_pos in ["top right", "bottom right"] else -50,  # テキストに合わせて終点を調整
-                ay=40 if text_pos in ["top right", "top left"] else -40,
-                font=dict(size=12),
-                align="left" if text_pos in ["top right", "bottom right"] else "right"  # テキストの配置を調整
-            )
         
         print(f"Debug - 重要度の平均値: {overall_importance_mean}")
         print(f"Debug - 満足度の平均値: {overall_satisfaction_mean}")
@@ -391,8 +358,8 @@ class Visualizer:
         # 平均値のテキストを個別のアノテーションとして追加
         fig.add_annotation(
             text=f"満足度平均：{overall_satisfaction_mean:.1f}",
-            x=x_min,
-            y=overall_satisfaction_mean + 0.04,
+            x=x_min + 0.05,
+            y=overall_satisfaction_mean,
             xref="x",
             yref="y",
             showarrow=False,
@@ -401,12 +368,12 @@ class Visualizer:
         )
         fig.add_annotation(
             text=f"重要度平均：{overall_importance_mean:.1f}",
-            x=overall_importance_mean + 0.02,
-            y=y_min,
+            x=overall_importance_mean,
+            y=y_min + 0.05,
             xref="x",
             yref="y",
             showarrow=False,
-            xanchor="left",
+            xanchor="center",
             yanchor="bottom"
         )
 
@@ -439,18 +406,17 @@ class Visualizer:
             height=600,
             showlegend=True,
             plot_bgcolor='white',
-            # # プロットエリアの枠線を追加
-            # shapes=[
-            #     dict(type='rect',
-            #          xref='paper',
-            #          yref='paper',
-            #          x0=0,
-            #          y0=0,
-            #          x1=1,
-            #          y1=1,
-            #          line=dict(color='rgba(128, 128, 128, 1)', width=1))
-            # ]
-        )
+            # プロットエリアの枠線を追加
+            shapes=[
+                dict(type='rect',
+                     xref='paper',
+                     yref='paper',
+                     x0=0,
+                     y0=0,
+                     x1=1,
+                     y1=1,
+                     line=dict(color='rgba(128, 128, 128, 1)', width=1))
+            ])
 
         # ラベルの位置を自動調整
         fig.update_traces(textposition='top center',
