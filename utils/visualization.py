@@ -316,12 +316,6 @@ class Visualizer:
                 color="orange",
                 width=1,
                 dash="dot"
-            ),
-            annotation_text=f"満足度平均：{overall_satisfaction_mean:.1f}",
-            annotation=dict(
-                xref="paper",
-                x=0,  # 左端に配置
-                xanchor="right"
             )
         )
         # 重要度の平均値（縦線）
@@ -331,13 +325,27 @@ class Visualizer:
                 color="orange",
                 width=1,
                 dash="dot"
-            ),
-            annotation_text=f"重要度平均：{overall_importance_mean:.1f}",
-            annotation=dict(
-                yref="paper",
-                y=0,  # 下端に配置
-                yanchor="top"
             )
+        )
+        
+        # 平均値のテキストを個別のアノテーションとして追加
+        fig.add_annotation(
+            text=f"満足度平均：{overall_satisfaction_mean:.1f}",
+            xref="paper",
+            yref="y",
+            x=0,
+            y=overall_satisfaction_mean,
+            showarrow=False,
+            xshift=-50
+        )
+        fig.add_annotation(
+            text=f"重要度平均：{overall_importance_mean:.1f}",
+            xref="x",
+            yref="paper",
+            x=overall_importance_mean,
+            y=0,
+            showarrow=False,
+            yshift=-30
         )
         
         # レイアウトの設定
