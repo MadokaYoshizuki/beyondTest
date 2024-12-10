@@ -531,20 +531,20 @@ class Visualizer:
             # 質問グループごとの値グループ分析
             if question_groups:
                 st.subheader("2. 質問グループごとの値グループ分析")
-                st.write("デバッグ情報：")
-                st.write(f"登録された質問グループ: {list(question_groups.keys())}")
                 
                 for group_name, questions in question_groups.items():
-                    st.write(f"グループ '{group_name}' の処理:")
-                    st.write(f"- 含まれる質問: {questions}")
-                    
                     # グループ内の数値列かつ値グループが設定されている列のみを処理
-                    valid_questions = [q for q in questions 
-                                   if q in df.columns and 
-                                   pd.api.types.is_numeric_dtype(df[q]) and 
-                                   q in value_groups]
+                    numeric_questions = [q for q in questions 
+                                      if q in df.columns and 
+                                      pd.api.types.is_numeric_dtype(df[q])]
                     
-                    st.write(f"- 値グループが設定された質問: {valid_questions}")
+                    valid_questions = [q for q in numeric_questions if q in value_groups]
+                    
+                    with st.expander(f"● {group_name}"):
+                        if not numeric_questions:
+                            st.info("このグループには数値回答の質問が含まれていません。")
+                        elif not valid_questions:
+                            st.info("このグループの質問には値グループが設定されていません。値グループを設定してから分析を行ってください。")
                     if valid_questions:
                         with st.expander(f"● {group_name}"):
                             # 各値グループのラベルを収集
