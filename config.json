@@ -154,5 +154,9 @@
                 }
             ]
         }
+    },
+    "pdf_font": {
+        "filename": "MSMINCHO.TTC",
+        "path": "fonts/MSMINCHO.TTC"
     }
 }

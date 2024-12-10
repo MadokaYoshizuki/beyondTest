@@ -103,6 +103,9 @@ class PDFGenerator:
         import seaborn as sns
         from io import BytesIO
         
+        # フォント設定
+        plt.rcParams['font.family'] = self.font_name
+        
         # プロットサイズの設定
         plt.figure(figsize=(10, 8))
         
@@ -133,6 +136,10 @@ class PDFGenerator:
     def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
         """散布図の作成"""
         from io import BytesIO
+        
+        # フォント設定
+        plt.rcParams['font.family'] = self.font_name
+        
         plt.figure(figsize=(10, 8))
         
         # 散布図のプロット
