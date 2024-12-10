@@ -49,20 +49,12 @@ class Visualizer:
         column_names = config_manager.config.get('column_names', {})
         question_groups = config_manager.config.get('question_groups', {})
         
-        # 質問グループの選択
-        group_options = ["すべての質問"] + list(question_groups.keys())
-        selected_group = st.selectbox("質問グループを選択:", group_options)
-        
-        # 選択されたグループの列を取得
-        target_columns = question_groups.get(selected_group, df.columns) if selected_group != "すべての質問" else df.columns
-        df_filtered = df[target_columns]
-
         # 数値回答の分析
         st.subheader("【数値回答】")
         
         # 1. 相関係数ヒートマップ
         st.write("1. 相関係数ヒートマップ")
-        self._display_correlation_heatmap(df_filtered, column_names, question_groups)
+        self._display_correlation_heatmap(df, column_names, question_groups)
         
         # 2. 回答の件数と構成比の帯グラフ
         st.write("2. 回答の分布")
@@ -93,8 +85,16 @@ class Visualizer:
                 ["質問間の相関", "質問グループ間の相関"],
                 key="correlation_mode"
             )
-            
+
             if correlation_mode == "質問間の相関":
+                # 質問グループの選択（質問間の相関モードの場合のみ表示）
+                group_options = ["すべての質問"] + list(question_groups.keys())
+                selected_group = st.selectbox("質問グループを選択:", group_options)
+                
+                # 選択されたグループの列を取得
+                target_columns = question_groups.get(selected_group, df.columns) if selected_group != "すべての質問" else df.columns
+                df_filtered = df[target_columns]
+                numeric_columns = df_filtered.select_dtypes(include=['number']).columns
                 display_columns = [column_names.get(col, col) for col in numeric_columns]
                 corr_data = df[numeric_columns].corr()
                 
