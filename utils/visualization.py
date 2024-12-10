@@ -36,6 +36,120 @@ class Visualizer:
         import os
         os.remove(excel_path)
 
+    def _display_value_distribution(self, df, column_names):
+        # 単一回答の数値列のみを抽出
+        numeric_columns = []
+        for col in df.select_dtypes(include=['number']).columns:
+            values = df[col].fillna('').astype(str)
+            if not values.str.contains(',').any():  # カンマを含まない = 単一回答
+                numeric_columns.append(col)
+                
+        if not numeric_columns:
+            st.info("単一回答の数値データが見つかりませんでした。")
+            return
+            
+        # Y軸のポジション設定（質問番号はデータの列名から抽出）
+        y_positions = list(range(len(numeric_columns)))
+        y_labels = [column_names.get(col, col) for col in numeric_columns]  # 列名をそのまま使用
+        
+        # データを格納するリスト
+        fig_data = []
+        
+        # 色のパレット（回答値ごとに異なる色を割り当て）
+        colors = {
+            1: 'rgb(255, 65, 54)',   # 赤
+            2: 'rgb(255, 144, 14)',  # オレンジ
+            3: 'rgb(190, 190, 190)', # グレー
+            4: 'rgb(93, 164, 214)',  # 青
+            5: 'rgb(44, 160, 44)'    # 緑
+        }
+        
+        # 各質問の回答分布を計算
+        for i, col in enumerate(numeric_columns):
+            value_counts = df[col].value_counts().sort_index()
+            total_count = len(df)
+            
+            # 各回答値の割合を計算し、個別のバーとして追加
+            for value in value_counts.index:
+                count = value_counts[value]
+                percentage = (count / total_count) * 100
+                
+                fig_data.append(
+                    go.Bar(
+                        name=str(value),  # 凡例に表示する回答値
+                        x=[percentage],
+                        y=[i],
+                        orientation='h',
+                        text=f"{percentage:.1f}%",
+                        textposition='inside',
+                        marker_color=colors.get(value, 'rgb(128, 128, 128)'),  # 定義されていない値はグレーを使用
+                        customdata=[[value, count]],
+                        hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
+                    )
+                )
+
+        # グラフの作成
+        fig = go.Figure(data=fig_data)
+        
+        # 凡例の重複を排除（nameでグループ化）
+        legend_names = []
+        for trace in fig.data:
+            if trace.name not in legend_names:
+                legend_names.append(trace.name)
+                trace.showlegend = True
+            else:
+                trace.showlegend = False
+        
+        # レイアウトの設定
+        fig.update_layout(
+            title=dict(
+                text="全質問の回答分布（単一回答のみ）",
+                x=0.5,
+                xanchor='center'
+            ),
+            barmode='stack',
+            showlegend=True,
+            xaxis=dict(
+                title="回答の割合 (%)",
+                range=[0, 100],  # X軸の範囲を0-100%に固定
+                showgrid=True,
+                gridcolor='rgba(0,0,0,0.1)',
+                zeroline=True,
+                zerolinecolor='rgba(0,0,0,0.2)'
+            ),
+            yaxis=dict(
+                title="質問項目",
+                ticktext=y_labels,
+                tickvals=y_positions,
+                automargin=True,
+                side='left'
+            ),
+            height=max(400, len(numeric_columns) * 40),  # 質問数に応じて高さを調整
+            margin=dict(l=300, r=50, t=50, b=50),  # マージンの調整
+            legend=dict(
+                title="回答値",
+                traceorder='normal',
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.02,
+                font=dict(size=10)
+            ),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            bargap=0.4,  # バー間のギャップを調整
+            uniformtext=dict(mode="hide", minsize=8)  # テキストサイズの自動調整
+        )
+        
+        # グラフのサイズとマージンを調整
+        fig.update_layout(
+            width=1000,  # グラフの幅を固定
+            height=max(500, len(numeric_columns) * 40)  # 質問数に応じて高さを調整
+        )
+        
+        # グラフを表示
+        st.plotly_chart(fig, use_container_width=False)  # コンテナ幅に合わせない
+
     def display_dashboard(self, dfs, config_manager):
         if not dfs:
             st.info("データを読み込んでください。")
@@ -63,18 +177,6 @@ class Visualizer:
         # 3. 平均値の散布図
         st.write("3. 平均値の散布図")
         self._display_scatter_plot(df, column_names)
-        
-        # 数値回答（複数回答）の分析
-        st.subheader("【数値回答（複数回答）】")
-        
-        # 属性の選択
-        attributes = ["全体"] + config_manager.config.get('attributes', [])
-        selected_attribute = st.selectbox("属性項目:", attributes)
-        
-        # 表示方法の選択
-        display_mode = st.radio("表示方法:", ["まとめて表示", "個別に表示"])
-        
-        self._display_multiple_choice_analysis(df_filtered, selected_attribute, column_names, display_mode)
 
     def _display_correlation_heatmap(self, df, column_names, question_groups=None):
         numeric_columns = df.select_dtypes(include=['number']).columns
@@ -153,122 +255,6 @@ class Visualizer:
             st.plotly_chart(fig)
         else:
             st.info("数値データが見つかりませんでした。")
-
-    def _display_value_distribution(self, df, column_names):
-        # 単一回答の数値列のみを抽出
-        numeric_columns = []
-        for col in df.select_dtypes(include=['number']).columns:
-            values = df[col].fillna('').astype(str)
-            if not values.str.contains(',').any():  # カンマを含まない = 単一回答
-                numeric_columns.append(col)
-                
-        if not numeric_columns:
-            st.info("単一回答の数値データが見つかりませんでした。")
-            return
-            
-        # Y軸のポジション設定（質問番号はデータの列名から抽出）
-        y_positions = list(range(len(numeric_columns)))
-        y_labels = [column_names.get(col, col) for col in numeric_columns]  # 列名をそのまま使用
-        
-        # データを格納するリスト
-        fig_data = []
-        
-        # 色のパレット（回答値ごとに異なる色を割り当て）
-        colors = {
-            1: 'rgb(255, 65, 54)',   # 赤
-            2: 'rgb(255, 144, 14)',  # オレンジ
-            3: 'rgb(190, 190, 190)', # グレー
-            4: 'rgb(93, 164, 214)',  # 青
-            5: 'rgb(44, 160, 44)'    # 緑
-        }
-        
-        # 各質問の回答分布を計算
-        for i, col in enumerate(numeric_columns):
-            value_counts = df[col].value_counts().sort_index()
-            total_count = len(df)
-            
-            # 各回答値の割合を計算し、個別のバーとして追加
-            for value in value_counts.index:
-                count = value_counts[value]
-                percentage = (count / total_count) * 100
-                
-                fig_data.append(
-                    go.Bar(
-                        name=str(value),  # 凡例に表示する回答値
-                        x=[percentage],
-                        y=[i],
-                        orientation='h',
-                        text=f"{percentage:.1f}%",
-                        textposition='inside',
-                        marker_color=colors.get(value, 'rgb(128, 128, 128)'),  # 定義されていない値はグレーを使用
-                        customdata=[[value, count]],
-                        hovertemplate="回答値: %{customdata[0]}<br>回答数: %{customdata[1]}<br>割合: %{x:.1f}%<extra></extra>"
-                    )
-                )
-
-            # グラフの作成
-            fig = go.Figure(data=fig_data)
-            
-            # 凡例の重複を排除（nameでグループ化）
-            legend_names = []
-            for trace in fig.data:
-                if trace.name not in legend_names:
-                    legend_names.append(trace.name)
-                    trace.showlegend = True
-                else:
-                    trace.showlegend = False
-            
-            # レイアウトの設定
-            fig.update_layout(
-                title=dict(
-                    text="全質問の回答分布（単一回答のみ）",
-                    x=0.5,
-                    xanchor='center'
-                ),
-                barmode='stack',
-                showlegend=True,
-                xaxis=dict(
-                    title="回答の割合 (%)",
-                    range=[0, 100],  # X軸の範囲を0-100%に固定
-                    showgrid=True,
-                    gridcolor='rgba(0,0,0,0.1)',
-                    zeroline=True,
-                    zerolinecolor='rgba(0,0,0,0.2)'
-                ),
-                yaxis=dict(
-                    title="質問項目",
-                    ticktext=y_labels,
-                    tickvals=y_positions,
-                    automargin=True,
-                    side='left'
-                ),
-                height=max(400, len(numeric_columns) * 40),  # 質問数に応じて高さを調整
-                margin=dict(l=300, r=50, t=50, b=50),  # マージンの調整
-                legend=dict(
-                    title="回答値",
-                    traceorder='normal',
-                    yanchor="top",
-                    y=1,
-                    xanchor="left",
-                    x=1.02,
-                    font=dict(size=10)
-                ),
-                plot_bgcolor='white',
-                paper_bgcolor='white',
-                bargap=0.4,  # バー間のギャップを調整
-                uniformtext=dict(mode="hide", minsize=8)  # テキストサイズの自動調整
-            )
-            
-            # グラフのサイズとマージンを調整
-            fig.update_layout(
-                width=1000,  # グラフの幅を固定
-                height=max(500, len(numeric_columns) * 40)  # 質問数に応じて高さを調整
-            )
-            
-            # グラフを表示
-            st.plotly_chart(fig, use_container_width=False)  # コンテナ幅に合わせない
-        else:
-            st.info("単一回答の数値データが見つかりませんでした。")
 
     def _display_scatter_plot(self, df, column_names):
         numeric_columns = df.select_dtypes(include=['number']).columns
