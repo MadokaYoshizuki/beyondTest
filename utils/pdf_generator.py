@@ -127,9 +127,10 @@ class PDFGenerator:
             xaxis=dict(tickangle=45),
         )
         
-        # プロットをバイトストリームとして保存
-        img_bytes = fig.to_image(format="png", width=1000, height=800)
-        img_stream = BytesIO(img_bytes)
+        # SVG形式で保存
+        import plotly.io as pio
+        svg_bytes = pio.to_image(fig, format="svg", width=1000, height=800)
+        img_stream = BytesIO(svg_bytes)
         img_stream.seek(0)
         
         return img_stream
@@ -168,9 +169,10 @@ class PDFGenerator:
         fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
         fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
         
-        # プロットをバイトストリームとして保存
-        img_bytes = fig.to_image(format="png", width=800, height=600)
-        img_stream = BytesIO(img_bytes)
+        # SVG形式で保存
+        import plotly.io as pio
+        svg_bytes = pio.to_image(fig, format="svg", width=800, height=600)
+        img_stream = BytesIO(svg_bytes)
         img_stream.seek(0)
         
         return img_stream
