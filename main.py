@@ -167,14 +167,6 @@ def main():
                 current_attributes = st.session_state.config_manager.config.get('attributes', [])
                 column_names = st.session_state.config_manager.config.get('column_names', {})
                 
-                # 既存の属性設定を表示
-                if current_attributes:
-                    st.write("現在の属性設定:")
-                    for attr in current_attributes:
-                        display_name = column_names.get(attr, attr)
-                        st.write(f"• {display_name}")
-                    st.markdown("---")
-
                 # 属性の選択
                 attributes = st.multiselect(
                     "属性として扱う列を選択:",
