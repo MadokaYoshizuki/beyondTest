@@ -527,20 +527,28 @@ def main():
                     # 絞り込み条件
                     st.subheader("データ絞り込み条件")
                     filters = {}
-                    if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                    
+                    if not hasattr(st.session_state.data_processor, 'dfs') or not st.session_state.data_processor.dfs:
+                        st.warning("データを読み込んでください")
+                    else:
                         df = st.session_state.data_processor.dfs[0]
                         attributes = st.session_state.config_manager.config.get('attributes', [])
                         
-                        for attr in attributes:
-                            unique_values = df[attr].unique().tolist()
-                            selected_values = st.multiselect(
-                                f"{attr}による絞り込み:",
-                                unique_values,
-                                default=unique_values,
-                                help=f"{attr}の値で絞り込む場合は選択してください"
-                            )
-                            if selected_values and len(selected_values) < len(unique_values):
-                                filters[attr] = selected_values
+                        if not attributes:
+                            st.info("属性が設定されていません。設定メニューで属性を設定してください。")
+                        else:
+                            st.write("以下の属性で絞り込みができます：")
+                            for attr in attributes:
+                                if attr in df.columns:  # 列が存在することを確認
+                                    unique_values = sorted(df[attr].unique().tolist())
+                                    selected_values = st.multiselect(
+                                        f"{attr}による絞り込み",
+                                        unique_values,
+                                        default=unique_values,
+                                        help=f"{attr}の値で絞り込む場合は選択してください"
+                                    )
+                                    if selected_values and len(selected_values) < len(unique_values):
+                                        filters[attr] = selected_values
                     
                     # 出力セクション設定
                     st.subheader("出力セクション設定")
