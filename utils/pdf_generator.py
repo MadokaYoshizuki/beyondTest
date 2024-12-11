@@ -19,6 +19,10 @@ class PDFGenerator:
         # 日本語フォントの設定
         self.font_name = 'Helvetica'
         try:
+            if config_manager is None:
+                st.warning("設定マネージャーが提供されていません")
+                return
+                
             # configからフォント設定を読み込む
             font_config = config_manager.config.get('pdf_font', {})
             if font_config and os.path.exists(font_config.get('path', '')):
@@ -27,16 +31,25 @@ class PDFGenerator:
                     font_name = os.path.splitext(font_config['filename'])[0]
                     pdfmetrics.registerFont(TTFont(font_name, font_path))
                     self.font_name = font_name
+                    
+                    # Matplotlibのグローバル設定
+                    import matplotlib.pyplot as plt
+                    plt.rcParams['font.family'] = self.font_name
+                    plt.rcParams['axes.unicode_minus'] = False
+                    plt.rcParams['font.size'] = 12
+                    
                     st.success(f"日本語フォント '{font_config['filename']}' を正常に読み込みました")
                 except Exception as e:
                     st.error(f"フォントの読み込み中にエラーが発生しました: {str(e)}")
+                    st.error(f"詳細: {str(e.__class__.__name__)}")
             else:
                 st.warning("日本語フォントが見つかりません。フォント設定セクションからアップロードしてください。")
             
             if self.font_name == 'Helvetica':
                 st.warning("日本語フォントが見つかりません。代替フォントを使用します。")
         except Exception as e:
-            st.warning(f"フォント設定中にエラーが発生しました: {str(e)}")
+            st.error(f"フォント設定中にエラーが発生しました: {str(e)}")
+            st.error(f"詳細: {str(e.__class__.__name__)}")
 
         # スタイルの設定
         self.styles = getSampleStyleSheet()
@@ -99,57 +112,67 @@ class PDFGenerator:
 
     def _create_heatmap(self, corr_data, column_names):
         """相関係数ヒートマップの作成"""
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-        from io import BytesIO
-        
-        # フォント設定
-        plt.rcParams['font.family'] = self.font_name
-        plt.rcParams['axes.unicode_minus'] = False
-        plt.rcParams['font.size'] = 10
-        
-        # プロットサイズと解像度の設定
-        plt.figure(figsize=(12, 10), dpi=300)
-        
-        # ヒートマップの作成
-        display_cols = [column_names.get(col, col) for col in corr_data.columns]
-        ax = sns.heatmap(corr_data, 
-                   xticklabels=display_cols,
-                   yticklabels=display_cols,
-                   annot=True,
-                   fmt='.2f',
-                   cmap='RdBu_r',
-                   center=0,
-                   cbar_kws={'label': '相関係数'})
-        
-        # 軸ラベルの回転と配置の調整
-        plt.xticks(rotation=45, ha='right')
-        plt.yticks(rotation=0)
-        
-        # タイトルとラベルのフォントサイズ調整
-        ax.set_xticklabels(ax.get_xticklabels(), fontsize=8)
-        ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
-        
-        # レイアウトの調整
-        plt.tight_layout(pad=1.5)
-        
-        # プロットをバイトストリームとして保存（高解像度）
-        img_stream = BytesIO()
-        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight', 
-                   pad_inches=0.5, facecolor='white', edgecolor='none')
-        img_stream.seek(0)
-        plt.close()
-        
-        return img_stream
+        try:
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+            from io import BytesIO
+            
+            # 既存のプロットをクリア
+            plt.clf()
+            
+            # フォント設定の確認とログ出力
+            st.write(f"現在のフォント設定: {plt.rcParams['font.family']}")
+            
+            # プロットサイズと解像度の設定
+            plt.figure(figsize=(12, 10), dpi=300)
+            
+            # ヒートマップの作成
+            display_cols = [column_names.get(col, col) for col in corr_data.columns]
+            ax = sns.heatmap(corr_data, 
+                       xticklabels=display_cols,
+                       yticklabels=display_cols,
+                       annot=True,
+                       fmt='.2f',
+                       cmap='RdBu_r',
+                       center=0,
+                       cbar_kws={'label': '相関係数'})
+            
+            # 軸ラベルの回転と配置の調整
+            plt.xticks(rotation=45, ha='right')
+            plt.yticks(rotation=0)
+            
+            # タイトルとラベルのフォントサイズ調整
+            ax.set_xticklabels(ax.get_xticklabels(), fontsize=8)
+            ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
+            
+            # レイアウトの調整
+            plt.tight_layout(pad=1.5)
+            
+            # プロットをバイトストリームとして保存（高解像度）
+            img_stream = BytesIO()
+            plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight', 
+                       pad_inches=0.5, facecolor='white', edgecolor='none')
+            img_stream.seek(0)
+            plt.close()
+            
+            return img_stream
+        except Exception as e:
+            st.error(f"ヒートマップの生成中にエラーが発生しました: {str(e)}")
+            st.error(f"エラーの種類: {str(e.__class__.__name__)}")
+            return None
 
     def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
         """散布図の作成"""
         from io import BytesIO
         
-        # フォント設定
+        # Matplotlibのフォント設定
         plt.rcParams['font.family'] = self.font_name
+        plt.rcParams['font.sans-serif'] = [self.font_name]
         plt.rcParams['axes.unicode_minus'] = False
         plt.rcParams['font.size'] = 12
+        
+        # フォントの確認
+        st.write(f"使用中のフォント: {self.font_name}")
         
         # プロットサイズと解像度の設定
         plt.figure(figsize=(12, 10), dpi=300)

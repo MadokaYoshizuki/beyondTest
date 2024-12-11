@@ -510,29 +510,41 @@ def main():
             
             # フォントファイルのアップロード
             font_file = st.file_uploader(
-                "日本語フォントファイル (NotoSansCJK-Regular.ttc) をアップロード:",
+                "日本語フォントファイル (.ttc/.ttf) をアップロード:",
                 type=['ttc', 'ttf'],
+                help="NotoSansCJK、IPAフォント、MSゴシック等の日本語フォントファイルをアップロードしてください。",
                 key="font_uploader"
             )
             
             if font_file is not None:
-                # fontsディレクトリの作成
-                if not os.path.exists('fonts'):
-                    os.makedirs('fonts')
-                
-                # フォントファイルの保存
-                font_filename = font_file.name
-                font_path = os.path.join('fonts', font_filename)
-                with open(font_path, 'wb') as f:
-                    f.write(font_file.getvalue())
-                
-                # 設定の更新
-                st.session_state.config_manager.config['pdf_font'] = {
-                    'filename': font_filename,
-                    'path': font_path
-                }
-                st.session_state.config_manager.save_config()
-                st.success(f"フォントファイル '{font_filename}' を保存しました")
+                try:
+                    # fontsディレクトリの作成
+                    if not os.path.exists('fonts'):
+                        os.makedirs('fonts')
+                    
+                    # フォントファイルの保存
+                    font_filename = font_file.name
+                    font_path = os.path.join('fonts', font_filename)
+                    
+                    # 既存のフォントファイルを削除
+                    if os.path.exists(font_path):
+                        os.remove(font_path)
+                    
+                    # 新しいフォントファイルを保存
+                    with open(font_path, 'wb') as f:
+                        f.write(font_file.getvalue())
+                    
+                    # 設定の更新
+                    st.session_state.config_manager.config['pdf_font'] = {
+                        'filename': font_filename,
+                        'path': font_path
+                    }
+                    st.session_state.config_manager.save_config()
+                    st.success(f"フォントファイル '{font_filename}' を保存しました")
+                except Exception as e:
+                    st.error(f"フォントファイルの保存中にエラーが発生しました: {str(e)}")
+                    if os.path.exists(font_path):
+                        os.remove(font_path)
             
             # 現在のフォント状態を確認
             current_font = st.session_state.config_manager.config.get('pdf_font', {})
