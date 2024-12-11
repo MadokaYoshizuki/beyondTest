@@ -2,8 +2,8 @@
     "column_names": {
         "\u8a55\u4fa1\u8005ID": "\u8a55\u4fa1\u8005ID",
         "\u62e0\u70b9\u540d\u79f0": "\u62e0\u70b9",
-        "\u90e8\u7f721\u540d\u79f0": "\u90e8\u7f721",
-        "\u90e8\u7f722\u540d\u79f0": "\u90e8\u7f722",
+        "\u90e8\u95801\u540d\u79f0": "\u90e8\u95801",
+        "\u90e8\u95802\u540d\u79f0": "\u90e8\u95802",
         "\u6027\u5225\u540d\u79f0": "\u6027\u5225",
         "\u5f79\u8077\u540d\u79f0": "\u5f79\u8077",
         "\u52e4\u7d9a\u5e74\u6570\u5225\u540d\u79f0": "\u52e4\u7d9a\u5e74\u6570",
@@ -30,8 +30,8 @@
     },
     "attributes": [
         "\u62e0\u70b9\u540d\u79f0",
-        "\u90e8\u7f721\u540d\u79f0",
-        "\u90e8\u7f722\u540d\u79f0",
+        "\u90e8\u95801\u540d\u79f0",
+        "\u90e8\u95802\u540d\u79f0",
         "\u6027\u5225\u540d\u79f0",
         "\u5f79\u8077\u540d\u79f0",
         "\u52e4\u7d9a\u5e74\u6570\u5225\u540d\u79f0"
@@ -80,119 +80,25 @@
         "Q.19": 5
     },
     "importance_satisfaction_pairs": {
-        "\u4eba\u9593\u95a2\u4fc2": {
+        "人間関係": {
             "importance": "Q.1",
             "satisfaction": "Q.2"
         },
-        "\u30ad\u30e3\u30ea\u30a2\u30a2\u30c3\u30d7\u74b0\u5883": {
+        "キャリアアップ環境": {
             "importance": "Q.5",
             "satisfaction": "Q.7"
         },
-        "\u4eba\u6750\u80b2\u6210": {
+        "人材育成": {
             "importance": "Q.10",
             "satisfaction": "Q.11"
         },
-        "\u696d\u52d9\u52b9\u7387": {
+        "業務効率": {
             "importance": "Q.13",
             "satisfaction": "Q.14"
         },
-        "\u8077\u5834\u74b0\u5883": {
+        "職場環境": {
             "importance": "Q.17",
             "satisfaction": "Q.19"
         }
-    },
-    "pdf_settings": {
-        "templates": {
-            "test": {
-                "title": "\u30c6\u30b9\u30c8\u30ec\u30dd\u30fc\u30c8",
-                "description": "\u8aac\u660e\u6587\u304c\u8868\u793a\u3055\u308c\u307e\u3059",
-                "filters": {},
-                "sections": [
-                    {
-                        "type": "\u76f8\u95a2\u5206\u6790",
-                        "title": "\u76f8\u95a2\u5206\u6790",
-                        "description": "",
-                        "options": {
-                            "mode": "\u8cea\u554f\u9593\u306e\u76f8\u95a2",
-                            "group": "\u3059\u3079\u3066\u306e\u8cea\u554f"
-                        }
-                    },
-                    {
-                        "type": "\u91cd\u8981\u5ea6\u6e80\u8db3\u5ea6",
-                        "title": "\u91cd\u8981\u5ea6-\u6e80\u8db3\u5ea6\u5206\u6790",
-                        "description": "",
-                        "options": {}
-                    }
-                ]
-            },
-            "\u8cea\u554f\u3054\u3068\u306e\u76f8\u95a2\u4fc2\u6570\u30d2\u30fc\u30c8\u30de\u30c3\u30d7": {
-                "title": "\u8cea\u554f\u3054\u3068\u306e\u76f8\u95a2\u4fc2\u6570\u30d2\u30fc\u30c8\u30de\u30c3\u30d7",
-                "description": "\u8aac\u660e\n\n\u8aac\u660e\n\n\u8aac\u660e\n\n\u8aac\u660e\n\n\u8aac\u660e\n\n",
-                "dataset": "\u30c7\u30fc\u30bf\u30bb\u30c3\u30c8 1",
-                "filters": {},
-                "sections": [
-                    {
-                        "type": "\u76f8\u95a2\u4fc2\u6570",
-                        "title": "\u76f8\u95a2\u4fc2\u6570\u30d2\u30fc\u30c8\u30de\u30c3\u30d7",
-                        "description": "",
-                        "options": {
-                            "analysis_unit": "\u8cea\u554f\u3054\u3068"
-                        }
-                    }
-                ]
-            },
-            "\u56de\u7b54\u306e\u5206\u5e03": {
-                "title": "\u56de\u7b54\u306e\u5206\u5e03",
-                "description": "",
-                "dataset": "\u30c7\u30fc\u30bf\u30bb\u30c3\u30c8 1",
-                "filters": {},
-                "sections": [
-                    {
-                        "type": "\u56de\u7b54\u306e\u5206\u5e03",
-                        "title": "\u56de\u7b54\u306e\u5206\u5e03",
-                        "description": "",
-                        "options": {
-                            "analysis_unit": "\u8cea\u554f\u3054\u3068"
-                        }
-                    }
-                ]
-            },
-            "\u56de\u7b54\u5206\u5e03": {
-                "title": "\u56de\u7b54\u5206\u5e03",
-                "description": "",
-                "dataset": "\u30c7\u30fc\u30bf\u30bb\u30c3\u30c8 1 (2023)",
-                "attribute": "\u62e0\u70b9\u540d\u79f0",
-                "sections": [
-                    {
-                        "type": "\u56de\u7b54\u5206\u5e03",
-                        "title": "\u56de\u7b54\u306e\u5206\u5e03\uff08\u8cea\u554f\u3054\u3068\uff09",
-                        "description": "",
-                        "options": {
-                            "analysis_unit": "\u8cea\u554f\u3054\u3068"
-                        }
-                    }
-                ]
-            },
-            "\u91cd\u8981\u5ea6\u3068\u6e80\u8db3\u5ea6": {
-                "title": "\u91cd\u8981\u5ea6\u3068\u6e80\u8db3\u5ea6",
-                "description": "",
-                "dataset": "\u30c7\u30fc\u30bf\u30bb\u30c3\u30c8 1 (2023)",
-                "attribute": "\u62e0\u70b9\u540d\u79f0",
-                "sections": [
-                    {
-                        "type": "\u91cd\u8981\u5ea6-\u6e80\u8db3\u5ea6",
-                        "title": "\u91cd\u8981\u5ea6-\u6e80\u8db3\u5ea6\u5206\u6790",
-                        "description": "",
-                        "options": {
-                            "analysis_unit": "\u8cea\u554f\u3054\u3068"
-                        }
-                    }
-                ]
-            }
-        }
-    },
-    "pdf_font": {
-        "filename": "MSMINCHO.TTC",
-        "path": "fonts/MSMINCHO.TTC"
     }
 }
