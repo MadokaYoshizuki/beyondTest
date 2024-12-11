@@ -105,13 +105,15 @@ class PDFGenerator:
         
         # フォント設定
         plt.rcParams['font.family'] = self.font_name
+        plt.rcParams['axes.unicode_minus'] = False
+        plt.rcParams['font.size'] = 10
         
-        # プロットサイズの設定
-        plt.figure(figsize=(10, 8))
+        # プロットサイズと解像度の設定
+        plt.figure(figsize=(12, 10), dpi=300)
         
         # ヒートマップの作成
         display_cols = [column_names.get(col, col) for col in corr_data.columns]
-        sns.heatmap(corr_data, 
+        ax = sns.heatmap(corr_data, 
                    xticklabels=display_cols,
                    yticklabels=display_cols,
                    annot=True,
@@ -120,14 +122,21 @@ class PDFGenerator:
                    center=0,
                    cbar_kws={'label': '相関係数'})
         
-        # 軸ラベルの回転
+        # 軸ラベルの回転と配置の調整
         plt.xticks(rotation=45, ha='right')
         plt.yticks(rotation=0)
-        plt.tight_layout()
         
-        # プロットをバイトストリームとして保存
+        # タイトルとラベルのフォントサイズ調整
+        ax.set_xticklabels(ax.get_xticklabels(), fontsize=8)
+        ax.set_yticklabels(ax.get_yticklabels(), fontsize=8)
+        
+        # レイアウトの調整
+        plt.tight_layout(pad=1.5)
+        
+        # プロットをバイトストリームとして保存（高解像度）
         img_stream = BytesIO()
-        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight')
+        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight', 
+                   pad_inches=0.5, facecolor='white', edgecolor='none')
         img_stream.seek(0)
         plt.close()
         
@@ -139,30 +148,38 @@ class PDFGenerator:
         
         # フォント設定
         plt.rcParams['font.family'] = self.font_name
+        plt.rcParams['axes.unicode_minus'] = False
+        plt.rcParams['font.size'] = 12
         
-        plt.figure(figsize=(10, 8))
+        # プロットサイズと解像度の設定
+        plt.figure(figsize=(12, 10), dpi=300)
         
         # 散布図のプロット
-        plt.scatter(data_points['importance'], data_points['satisfaction'])
+        plt.scatter(data_points['importance'], data_points['satisfaction'], s=100)
         
-        # ラベルの追加
+        # ラベルの追加（フォントサイズを調整）
         for idx, point in data_points.iterrows():
             plt.annotate(point['name'], 
                         (point['importance'], point['satisfaction']),
-                        xytext=(5, 5), textcoords='offset points')
+                        xytext=(5, 5), 
+                        textcoords='offset points',
+                        fontsize=10)
         
         # 軸の設定
         plt.xlim(2.0, 3.2)
         plt.ylim(2.0, 3.6)
-        plt.xlabel('重要度')
-        plt.ylabel('満足度')
-        plt.title(title)
+        plt.xlabel('重要度', fontsize=12)
+        plt.ylabel('満足度', fontsize=12)
+        plt.title(title, fontsize=14, pad=20)
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
         
-        # プロットをバイトストリームとして保存
+        # レイアウトの調整
+        plt.tight_layout(pad=1.5)
+        
+        # プロットをバイトストリームとして保存（高解像度）
         img_stream = BytesIO()
-        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight')
+        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight',
+                   pad_inches=0.5, facecolor='white', edgecolor='none')
         img_stream.seek(0)
         plt.close()
         
