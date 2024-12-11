@@ -1,8 +1,12 @@
-import streamlit as st
-from weasyprint import HTML
-from weasyprint.text.fonts import FontConfiguration
-import tempfile
-import os
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import Frame, PageTemplate
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, cm
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import pandas as pd
 import plotly.io as pio
 import plotly.graph_objects as go
@@ -13,28 +17,13 @@ from datetime import datetime
 
 class PDFGenerator:
     def __init__(self):
-        self.font_config = FontConfiguration()
-        
-    def generate_from_html(self, html_content, output_path="analysis_report.pdf"):
-        """HTMLコンテンツからPDFを生成する"""
-        # HTMLをPDFに変換
-        HTML(string=html_content).write_pdf(
-            output_path,
-            font_config=self.font_config,
-            presentational_hints=True
-        )
-        
-        # PDFファイルのダウンロードボタンを表示
-        with open(output_path, "rb") as pdf_file:
-            st.download_button(
-                label="PDFをダウンロード",
-                data=pdf_file,
-                file_name=output_path,
-                mime="application/pdf"
-            )
-            
-        # 一時ファイルを削除
-        os.remove(output_path)
+        # 日本語フォントの登録
+        try:
+            font_path = "/nix/store/noto-fonts-cjk/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc"
+            pdfmetrics.registerFont(TTFont('NotoSans', font_path))
+        except:
+            # フォントが見つからない場合はデフォルトフォントを使用
+            st.warning("日本語フォントの読み込みに失敗しました。デフォルトフォントを使用します。")
         
     def _create_header_footer(self, canvas, doc):
         """ヘッダーとフッターを描画"""

@@ -1,10 +1,14 @@
 {pkgs}: {
   deps = [
-    pkgs.pango
-    pkgs.harfbuzz
-    pkgs.glib
+    pkgs.tk
+    pkgs.tcl
+    pkgs.qhull
+    pkgs.pkg-config
+    pkgs.gtk3
+    pkgs.gobject-introspection
     pkgs.ghostscript
-    pkgs.fontconfig
+    pkgs.ffmpeg-full
+    pkgs.cairo
     pkgs.noto-fonts-cjk
     pkgs.glibcLocales
     pkgs.freetype
