@@ -100,7 +100,7 @@ class PDFGenerator:
 
         # 日付
         date = datetime.now().strftime("%Y年%m月%d日")
-        elements.append(Paragraph(f"作成日：{date}", styles['Normal']))
+        elements.append(Paragraph(f"作成日：{date}", styles['JapaneseParagraph']))
         elements.append(PageBreak())
 
         return elements
@@ -380,12 +380,18 @@ class PDFGenerator:
 
             # セクションの生成
             for i, section in enumerate(template['sections'], 1):
-                if section['type'] == '数値表':
-                    self._add_numeric_analysis_section(elements, dfs, config_manager, i, section)
-                elif section['type'] == '相関分析':
-                    self._add_correlation_analysis_section(elements, dfs, config_manager, i, section)
-                elif section['type'] == '重要度満足度':
-                    self._add_importance_satisfaction_section(elements, dfs, config_manager, i, section)
+                try:
+                    if section['type'] == '回答分布':
+                        self._add_numeric_analysis_section(elements, dfs, config_manager, i, section)
+                    elif section['type'] == '相関係数':
+                        self._add_correlation_analysis_section(elements, dfs, config_manager, i, section)
+                    elif section['type'] == '重要度満足度':
+                        self._add_importance_satisfaction_section(elements, dfs, config_manager, i, section)
+                    st.success(f"セクション {section['title']} を生成しました")
+                except Exception as e:
+                    st.error(f"セクション {section['title']} の生成中にエラーが発生: {str(e)}")
+                    import traceback
+                    st.error(traceback.format_exc())
 
             # PDFの生成
             doc.build(elements)
