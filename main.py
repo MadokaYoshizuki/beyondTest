@@ -538,22 +538,21 @@ def main():
                     if selected_attribute == "なし":
                         selected_attribute = None
             
-            # 出力セクション設定
-            st.subheader("出力セクション設定")
+            # グラフ種類の選択（分析単位を含む）
             graph_options = [
-                "相関係数ヒートマップ",
+                "相関係数",
                 "回答の分布（質問ごと）",
                 "回答の分布（質問グループごと）",
-                "重要度-満足度分析"
+                "重要度-満足度"
             ]
             graph_type = st.selectbox("グラフ種類", graph_options)
             
             # グラフ種類から実際の設定を抽出
             if "（質問ごと）" in graph_type:
-                actual_type = graph_type.split("（")[0].strip()
+                actual_type = "回答分布"
                 analysis_unit = "質問ごと"
             elif "（質問グループごと）" in graph_type:
-                actual_type = graph_type.split("（")[0].strip()
+                actual_type = "回答分布"
                 analysis_unit = "質問グループごと"
             else:
                 actual_type = graph_type
@@ -572,7 +571,7 @@ def main():
                         "attribute": selected_attribute,
                         "sections": [
                             {
-                                "type": actual_type.replace("ヒートマップ", "").replace("分析", ""),
+                                "type": actual_type,
                                 "title": graph_type,
                                 "description": "",
                                 "options": {
@@ -588,7 +587,7 @@ def main():
                     st.session_state.config_manager.config['pdf_settings']['templates'] = templates
                     st.session_state.config_manager.save_config()
                     st.success("テンプレートを保存しました")
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error("テンプレート名を入力してください")
 
