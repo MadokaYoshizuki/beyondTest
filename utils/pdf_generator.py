@@ -129,26 +129,17 @@ class PDFGenerator:
             xaxis=dict(tickangle=45),
         )
         
-        # 一時HTMLファイルとして保存
-        temp_html = "temp/heatmap.html"
-        os.makedirs("temp", exist_ok=True)
-        fig.write_html(temp_html)
+        # 画像として保存
+        img_bytes = fig.write_image("temp/heatmap.png")
         
-        # PlaywrightでHTMLをPNGに変換
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page(viewport={'width': 1000, 'height': 800})
-            page.goto(f'file://{os.path.abspath(temp_html)}')
-            page.wait_for_load_state('networkidle')
-            img_bytes = page.screenshot()
-            browser.close()
-        
-        # 画像をBytesIOに変換
+        # 画像をBytesIOに読み込む
+        with open("temp/heatmap.png", "rb") as f:
+            img_bytes = f.read()
         img_stream = BytesIO(img_bytes)
         img_stream.seek(0)
         
         # 一時ファイルを削除
-        os.remove(temp_html)
+        os.remove("temp/heatmap.png")
         
         return img_stream
 
@@ -188,26 +179,17 @@ class PDFGenerator:
         fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
         fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
         
-        # 一時HTMLファイルとして保存
-        temp_html = "temp/scatter.html"
-        os.makedirs("temp", exist_ok=True)
-        fig.write_html(temp_html)
+        # 画像として保存
+        img_bytes = fig.write_image("temp/scatter.png")
         
-        # PlaywrightでHTMLをPNGに変換
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page(viewport={'width': 800, 'height': 600})
-            page.goto(f'file://{os.path.abspath(temp_html)}')
-            page.wait_for_load_state('networkidle')
-            img_bytes = page.screenshot()
-            browser.close()
-        
-        # 画像をBytesIOに変換
+        # 画像をBytesIOに読み込む
+        with open("temp/scatter.png", "rb") as f:
+            img_bytes = f.read()
         img_stream = BytesIO(img_bytes)
         img_stream.seek(0)
         
         # 一時ファイルを削除
-        os.remove(temp_html)
+        os.remove("temp/scatter.png")
         
         return img_stream
 
