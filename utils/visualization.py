@@ -1,4 +1,15 @@
 import streamlit as st
+import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime
+from io import BytesIO
+from reportlab.lib.units import inch, cm
+from reportlab.platypus import Image
+from utils.pdf_generator import PDFGenerator
+from utils.config_manager import ConfigManager
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -165,22 +176,79 @@ class Visualizer:
         # 数値回答の分析
         st.subheader("【数値回答】")
 
-        # 1. 相関係数ヒートマップ
-        st.write("**1. 相関係数ヒートマップ**")
-        self._display_correlation_heatmap(df, column_names, question_groups)
+        # 各分析セクションのコンテナ
+        with st.container():
+            # 1. 相関係数ヒートマップ
+            st.write("**1. 相関係数ヒートマップ**")
+            self._display_correlation_heatmap(df, column_names, question_groups)
+            
+            # 属性選択と PDF 出力
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                attributes = ["全体"] + config_manager.config.get('attributes', [])
+                selected_attribute = st.selectbox(
+                    "属性による分析",
+                    attributes,
+                    key="correlation_attribute"
+                )
+            with col2:
+                if st.button("PDF出力", key="correlation_pdf"):
+                    self._generate_analysis_pdf(df, column_names, question_groups, "相関係数", selected_attribute)
+                    st.success("相関係数分析のPDFを生成しました")
 
-        # 2. 回答の件数と構成比の帯グラフ
-        st.write("**2. 回答の分布**")
-        self._display_value_distribution(df, column_names)
+        with st.container():
+            # 2. 回答の分布
+            st.write("**2. 回答の分布**")
+            self._display_value_distribution(df, column_names)
+            
+            # 属性選択と PDF 出力
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                selected_attribute = st.selectbox(
+                    "属性による分析",
+                    attributes,
+                    key="distribution_attribute"
+                )
+            with col2:
+                if st.button("PDF出力", key="distribution_pdf"):
+                    self._generate_analysis_pdf(df, column_names, question_groups, "回答分布", selected_attribute)
+                    st.success("回答分布分析のPDFを生成しました")
 
-        # 3. 質問グループ間の散布図
-        st.write("**3. 質問グループ間の散布図**")
-        self._display_scatter_plot(df, column_names, question_groups)
+        with st.container():
+            # 3. 質問グループ間の散布図
+            st.write("**3. 質問グループ間の散布図**")
+            self._display_scatter_plot(df, column_names, question_groups)
+            
+            # 属性選択と PDF 出力
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                selected_attribute = st.selectbox(
+                    "属性による分析",
+                    attributes,
+                    key="scatter_attribute"
+                )
+            with col2:
+                if st.button("PDF出力", key="scatter_pdf"):
+                    self._generate_analysis_pdf(df, column_names, question_groups, "散布図", selected_attribute)
+                    st.success("散布図分析のPDFを生成しました")
 
-        # 4. 重要度-満足度分析
-        st.write("**4. 重要度-満足度分析**")
-        self._display_importance_satisfaction_plot(df, column_names,
-                                                   config_manager)
+        with st.container():
+            # 4. 重要度-満足度分析
+            st.write("**4. 重要度-満足度分析**")
+            self._display_importance_satisfaction_plot(df, column_names, config_manager)
+            
+            # 属性選択と PDF 出力
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                selected_attribute = st.selectbox(
+                    "属性による分析",
+                    attributes,
+                    key="importance_satisfaction_attribute"
+                )
+            with col2:
+                if st.button("PDF出力", key="importance_satisfaction_pdf"):
+                    self._generate_analysis_pdf(df, column_names, question_groups, "重要度満足度", selected_attribute)
+                    st.success("重要度-満足度分析のPDFを生成しました")
 
     def _display_correlation_heatmap(self,
                                      df,
@@ -702,6 +770,64 @@ class Visualizer:
                     for q in numeric_questions:
                         mean_val = df[q].mean()
                         max_score = max_scores.get(q, df[q].max())
+    def _generate_analysis_pdf(self, df, column_names, question_groups, analysis_type, selected_attribute):
+        """選択した属性ごとのグラフを含むPDFを生成する"""
+        try:
+            # PDFファイル名を生成（一時ファイル）
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"analysis_report_{timestamp}.pdf"
+            
+            # PDFを生成
+            pdf_generator = PDFGenerator(ConfigManager())
+            template_name = f"{analysis_type}分析レポート"
+            
+            # テンプレートを動的に生成
+            template = {
+                "title": f"{analysis_type}分析レポート",
+                "description": f"属性：{selected_attribute if selected_attribute != '全体' else '全体分析'}",
+                "dataset": f"データセット 1",
+                "attribute": selected_attribute if selected_attribute != '全体' else None,
+                "sections": [
+                    {
+                        "type": analysis_type,
+                        "title": f"{analysis_type}分析",
+                        "description": "",
+                        "options": {
+                            "analysis_unit": "質問ごと"
+                        }
+                    }
+                ]
+            }
+            
+            # テンプレートを一時的に保存
+            if 'pdf_settings' not in pdf_generator.config_manager.config:
+                pdf_generator.config_manager.config['pdf_settings'] = {}
+            if 'templates' not in pdf_generator.config_manager.config['pdf_settings']:
+                pdf_generator.config_manager.config['pdf_settings']['templates'] = {}
+            pdf_generator.config_manager.config['pdf_settings']['templates'][template_name] = template
+            
+            # PDFを生成
+            pdf_path = pdf_generator.generate_pdf([df], ConfigManager(), self, template_name)
+            
+            # テンプレートを削除
+            del pdf_generator.config_manager.config['pdf_settings']['templates'][template_name]
+            
+            if pdf_path:
+                with open(pdf_path, "rb") as pdf_file:
+                    st.download_button(
+                        label="PDFをダウンロード",
+                        data=pdf_file,
+                        file_name=filename,
+                        mime="application/pdf"
+                    )
+                # 一時ファイルを削除
+                import os
+                os.remove(pdf_path)
+                
+        except Exception as e:
+            st.error(f"PDF生成中にエラーが発生しました: {str(e)}")
+            import traceback
+            st.error(traceback.format_exc())
                         if pd.notnull(mean_val) and max_score > 0:
                             score = (mean_val / max_score) * 100
                             scores.append(score)

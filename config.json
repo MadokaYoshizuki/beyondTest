@@ -160,12 +160,12 @@
             "\u56de\u7b54\u5206\u5e03": {
                 "title": "\u56de\u7b54\u5206\u5e03",
                 "description": "",
-                "dataset": "\u30c7\u30fc\u30bf\u30bb\u30c3\u30c8 1",
+                "dataset": "\u30c7\u30fc\u30bf\u30bb\u30c3\u30c8 1 (2023)",
                 "attribute": "\u62e0\u70b9\u540d\u79f0",
                 "sections": [
                     {
-                        "type": "\u56de\u7b54\u306e\u5206\u5e03",
-                        "title": "\u56de\u7b54\u306e\u5206\u5e03",
+                        "type": "\u56de\u7b54\u5206\u5e03",
+                        "title": "\u56de\u7b54\u306e\u5206\u5e03\uff08\u8cea\u554f\u3054\u3068\uff09",
                         "description": "",
                         "options": {
                             "analysis_unit": "\u8cea\u554f\u3054\u3068"
