@@ -504,9 +504,143 @@ def main():
         st.markdown("## 6. PDF出力")
         st.markdown("---")
         
-        # フォント設定
-        with st.expander("フォント設定", expanded=True):
-            st.write("### 日本語フォントの設定")
+        # タブの作成
+        tab1, tab2 = st.tabs(["📋 帳票テンプレート管理", "⚙️ フォント設定"])
+
+        # 帳票テンプレート管理タブ
+        with tab1:
+            st.markdown("### 帳票テンプレート管理")
+            
+            # テンプレート一覧の表示
+            templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
+            
+            if templates:
+                st.write("登録済みテンプレート:")
+                for template_name, template_data in templates.items():
+                    with st.expander(f"📄 {template_name}: {template_data['title']}", expanded=False):
+                        st.write(f"説明: {template_data.get('description', '')}")
+                        
+                        # フィルター設定の表示
+                        if filters := template_data.get('filters', {}):
+                            st.write("データ絞り込み条件:")
+                            for attr, values in filters.items():
+                                st.write(f"- {attr}: {', '.join(values)}")
+                        
+                        # セクション一覧
+                        st.write("出力内容:")
+                        for section in template_data.get('sections', []):
+                            st.write(f"- {section['title']}")
+                            if description := section.get('description'):
+                                st.caption(description)
+                        
+                        # PDFプレビューボタン
+                        col1, col2 = st.columns([1, 4])
+                        with col1:
+                            if st.button("PDF出力", key=f"pdf_{template_name}"):
+                                st.session_state.pdf_generator = PDFGenerator(st.session_state.config_manager)
+                                output_path = st.session_state.pdf_generator.generate_pdf(
+                                    st.session_state.data_processor.dfs,
+                                    st.session_state.config_manager,
+                                    st.session_state.visualizer,
+                                    template_name
+                                )
+                                if output_path:
+                                    with open(output_path, "rb") as pdf_file:
+                                        st.download_button(
+                                            label="PDFをダウンロード",
+                                            data=pdf_file,
+                                            file_name=f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                            mime="application/pdf"
+                                        )
+            
+            # 新規テンプレート作成
+            st.markdown("### 新規テンプレート作成")
+            with st.form("new_template_form"):
+                # 基本情報
+                template_name = st.text_input("テンプレート名", placeholder="例: 帳票1, 帳票2")
+                title = st.text_input("タイトル", placeholder="例: 基本分析レポート")
+                description = st.text_area("説明文", placeholder="レポートの概要を入力してください")
+                
+                # データ絞り込み条件
+                st.write("データ絞り込み条件")
+                filters = {}
+                if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                    for attr in st.session_state.config_manager.config.get('attributes', []):
+                        unique_values = list(st.session_state.data_processor.dfs[0][attr].unique())
+                        selected_values = st.multiselect(
+                            f"{attr}で絞り込み",
+                            ["全て"] + unique_values,
+                            default=["全て"]
+                        )
+                        if selected_values:
+                            filters[attr] = selected_values
+                
+                # セクション設定
+                st.write("出力するセクション")
+                sections = []
+                
+                # 数値表セクション
+                if st.checkbox("数値表を含める", value=True):
+                    numeric_section = {
+                        "type": "数値表",
+                        "title": "属性別平均値一覧",
+                        "description": st.text_input("数値表の説明", placeholder="数値表の説明を入力してください"),
+                        "options": {
+                            "show_group_analysis": st.checkbox("グループ分析を表示", value=True),
+                            "show_question_analysis": st.checkbox("質問別分析を表示", value=True)
+                        }
+                    }
+                    sections.append(numeric_section)
+                
+                # 相関分析セクション
+                if st.checkbox("相関分析を含める"):
+                    correlation_section = {
+                        "type": "相関分析",
+                        "title": "相関分析",
+                        "description": st.text_input("相関分析の説明", placeholder="相関分析の説明を入力してください"),
+                        "options": {
+                            "mode": st.selectbox(
+                                "分析モード",
+                                ["質問間の相関", "グループ間の相関"]
+                            ),
+                            "group": "すべての質問"
+                        }
+                    }
+                    sections.append(correlation_section)
+                
+                # 重要度-満足度分析セクション
+                if st.checkbox("重要度-満足度分析を含める"):
+                    is_section = {
+                        "type": "重要度満足度",
+                        "title": "重要度-満足度分析",
+                        "description": st.text_input("重要度-満足度分析の説明", placeholder="重要度-満足度分析の説明を入力してください"),
+                        "options": {}
+                    }
+                    sections.append(is_section)
+                
+                # 保存ボタン
+                if st.form_submit_button("テンプレートを保存"):
+                    if template_name and title:
+                        if 'pdf_settings' not in st.session_state.config_manager.config:
+                            st.session_state.config_manager.config['pdf_settings'] = {'templates': {}}
+                        elif 'templates' not in st.session_state.config_manager.config['pdf_settings']:
+                            st.session_state.config_manager.config['pdf_settings']['templates'] = {}
+                        
+                        st.session_state.config_manager.config['pdf_settings']['templates'][template_name] = {
+                            "title": title,
+                            "description": description,
+                            "filters": filters,
+                            "sections": sections
+                        }
+                        st.session_state.config_manager.save_config()
+                        st.success("テンプレートを保存しました")
+                        st.rerun()
+                    else:
+                        st.error("テンプレート名とタイトルは必須です")
+        
+        # フォント設定タブ
+        with tab2:
+            st.markdown("### 日本語フォントの設定")
             
             # フォントファイルのアップロード
             font_file = st.file_uploader(
