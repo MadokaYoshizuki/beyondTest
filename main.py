@@ -513,7 +513,7 @@ def main():
             st.markdown("### 帳票テンプレート管理")
             
             try:
-                st.markdown("### 新規テンプレート作成")
+                # テンプレート作成フォーム
                 with st.form("template_creation_form"):
                     # 基本情報
                     template_name = st.text_input("テンプレート名", help="例: 基本分析レポート")
@@ -524,7 +524,25 @@ def main():
                         dataset_options = [f"データセット {i+1}" for i in range(len(st.session_state.data_processor.dfs))]
                         selected_dataset = st.selectbox("分析対象のデータセット", dataset_options)
                     
-                    # グラフ種類と分析単位の選択
+                    # 絞り込み条件
+                    st.subheader("データ絞り込み条件")
+                    filters = {}
+                    if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                        df = st.session_state.data_processor.dfs[0]
+                        attributes = st.session_state.config_manager.config.get('attributes', [])
+                        
+                        for attr in attributes:
+                            unique_values = df[attr].unique().tolist()
+                            selected_values = st.multiselect(
+                                f"{attr}による絞り込み:",
+                                unique_values,
+                                default=unique_values,
+                                help=f"{attr}の値で絞り込む場合は選択してください"
+                            )
+                            if selected_values and len(selected_values) < len(unique_values):
+                                filters[attr] = selected_values
+                    
+                    # 出力セクション設定
                     st.subheader("出力セクション設定")
                     graph_type = st.selectbox(
                         "グラフ種類",
@@ -546,6 +564,7 @@ def main():
                                 "title": template_name,
                                 "description": template_description,
                                 "dataset": selected_dataset if 'selected_dataset' in locals() else "データセット 1",
+                                "filters": filters,
                                 "sections": [
                                     {
                                         "type": graph_type.replace("ヒートマップ", "").replace("分析", ""),
@@ -564,10 +583,11 @@ def main():
                             st.session_state.config_manager.config['pdf_settings']['templates'] = templates
                             st.session_state.config_manager.save_config()
                             st.success("テンプレートを保存しました")
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("テンプレート名を入力してください")
 
+                # 登録済みテンプレート
                 st.markdown("### 登録済みテンプレート")
                 templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
                 

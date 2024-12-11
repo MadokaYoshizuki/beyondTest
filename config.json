@@ -124,6 +124,21 @@
                         "options": {}
                     }
                 ]
+            },
+            "\u8cea\u554f\u3054\u3068\u306e\u76f8\u95a2\u4fc2\u6570\u30d2\u30fc\u30c8\u30de\u30c3\u30d7": {
+                "title": "\u8cea\u554f\u3054\u3068\u306e\u76f8\u95a2\u4fc2\u6570\u30d2\u30fc\u30c8\u30de\u30c3\u30d7",
+                "description": "\u8cea\u554f\u3054\u3068\u306e\u76f8\u95a2\u4fc2\u6570\u30d2\u30fc\u30c8\u30de\u30c3\u30d7\uff08\u8cea\u554f\u3054\u3068\uff09",
+                "dataset": "\u30c7\u30fc\u30bf\u30bb\u30c3\u30c8 1",
+                "sections": [
+                    {
+                        "type": "\u76f8\u95a2\u4fc2\u6570",
+                        "title": "\u76f8\u95a2\u4fc2\u6570\u30d2\u30fc\u30c8\u30de\u30c3\u30d7",
+                        "description": "",
+                        "options": {
+                            "analysis_unit": "\u8cea\u554f\u3054\u3068"
+                        }
+                    }
+                ]
             }
         }
     },
