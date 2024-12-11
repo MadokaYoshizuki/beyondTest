@@ -222,31 +222,76 @@ class PDFGenerator:
                 section_elements = []
                 section_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
                 
-                # 基本統計量
-                numeric_df = df.select_dtypes(include=['number'])
-                if not numeric_df.empty:
-                    stats = numeric_df.describe()
-                    display_cols = [column_names.get(col, col) for col in stats.columns]
-                    table_data = [["統計量"] + display_cols]
-                    for idx in stats.index:
-                        row = [idx] + ['{:g}'.format(x) if isinstance(x, float) else str(x) for x in stats.loc[idx]]
-                        table_data.append(row)
-                    
-                    table = Table(table_data)
-                    table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                        ('FONTSIZE', (0, 0), (-1, 0), 10),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ]))
-                    section_elements.append(table)
-                    section_elements.append(Spacer(1, 0.5*cm))
+                # 分析単位に応じて処理を変更
+                analysis_unit = section.get('options', {}).get('analysis_unit', '質問ごと')
+                if analysis_unit == '質問グループごと':
+                    # 質問グループごとの処理
+                    question_groups = config_manager.config.get('question_groups', {})
+                    for group_name, questions in question_groups.items():
+                        group_df = df[questions]
+                        if not group_df.empty:
+                            # グループごとの回答分布図を生成
+                            plt.figure(figsize=(12, 6))
+                            group_df.boxplot()
+                            plt.title(f"{group_name}の回答分布")
+                            plt.xticks(rotation=45, ha='right')
+                            plt.tight_layout()
+                            
+                            # プロットを画像として保存
+                            img_stream = BytesIO()
+                            plt.savefig(img_stream, format='png', dpi=300)
+                            img_stream.seek(0)
+                            plt.close()
+                            
+                            # 画像をPDFに追加
+                            section_elements.append(Image(img_stream, width=6*inch, height=3*inch))
+                            section_elements.append(Spacer(1, 0.5*cm))
+                else:
+                    # 質問ごとの処理
+                    numeric_df = df.select_dtypes(include=['number'])
+                    if not numeric_df.empty:
+                        # 回答分布図を生成
+                        plt.figure(figsize=(12, 6))
+                        numeric_df.boxplot()
+                        plt.title("質問ごとの回答分布")
+                        plt.xticks(rotation=45, ha='right')
+                        plt.tight_layout()
+                        
+                        # プロットを画像として保存
+                        img_stream = BytesIO()
+                        plt.savefig(img_stream, format='png', dpi=300)
+                        img_stream.seek(0)
+                        plt.close()
+                        
+                        # 画像をPDFに追加
+                        section_elements.append(Image(img_stream, width=6*inch, height=3*inch))
+                        section_elements.append(Spacer(1, 0.5*cm))
+                        
+                        # 基本統計量のテーブルを追加
+                        stats = numeric_df.describe()
+                        display_cols = [column_names.get(col, col) for col in stats.columns]
+                        table_data = [["統計量"] + display_cols]
+                        for idx in stats.index:
+                            row = [idx] + ['{:g}'.format(x) if isinstance(x, float) else str(x) for x in stats.loc[idx]]
+                            table_data.append(row)
+                        
+                        table = Table(table_data)
+                        table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                            ('FONTNAME', (0, 0), (-1, -1), self.font_name),
+                            ('FONTSIZE', (0, 0), (-1, 0), 10),
+                            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                        ]))
+                        section_elements.append(table)
+                        section_elements.append(Spacer(1, 0.5*cm))
                 
                 elements.append(KeepTogether(section_elements))
         except Exception as e:
             st.error(f"数値分析セクションの生成中にエラーが発生しました: {str(e)}")
+            import traceback
+            st.error(traceback.format_exc())
 
     def _add_correlation_analysis_section(self, elements, dfs, config_manager, section_number, section):
         """相関分析のセクションを追加"""

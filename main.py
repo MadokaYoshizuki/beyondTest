@@ -517,7 +517,10 @@ def main():
             
             # データセット選択
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
-                dataset_options = [f"データセット {i+1}" for i in range(len(st.session_state.data_processor.dfs))]
+                dataset_options = [
+                    f"データセット {i+1} ({st.session_state.data_processor.dates[i]})" 
+                    for i in range(len(st.session_state.data_processor.dfs))
+                ]
                 selected_dataset = st.selectbox("分析対象のデータセット", dataset_options)
             
             # 属性選択
@@ -537,15 +540,24 @@ def main():
             
             # 出力セクション設定
             st.subheader("出力セクション設定")
-            graph_type = st.selectbox(
-                "グラフ種類",
-                ["相関係数ヒートマップ", "回答の分布", "重要度-満足度分析"]
-            )
+            graph_options = [
+                "相関係数ヒートマップ",
+                "回答の分布（質問ごと）",
+                "回答の分布（質問グループごと）",
+                "重要度-満足度分析"
+            ]
+            graph_type = st.selectbox("グラフ種類", graph_options)
             
-            analysis_unit = st.radio(
-                "分析単位",
-                ["質問ごと", "質問グループごと"]
-            )
+            # グラフ種類から実際の設定を抽出
+            if "（質問ごと）" in graph_type:
+                actual_type = graph_type.split("（")[0].strip()
+                analysis_unit = "質問ごと"
+            elif "（質問グループごと）" in graph_type:
+                actual_type = graph_type.split("（")[0].strip()
+                analysis_unit = "質問グループごと"
+            else:
+                actual_type = graph_type
+                analysis_unit = "質問ごと"
             
             # 保存ボタン
             submitted = st.form_submit_button("テンプレートを保存")
@@ -560,7 +572,7 @@ def main():
                         "attribute": selected_attribute,
                         "sections": [
                             {
-                                "type": graph_type.replace("ヒートマップ", "").replace("分析", ""),
+                                "type": actual_type.replace("ヒートマップ", "").replace("分析", ""),
                                 "title": graph_type,
                                 "description": "",
                                 "options": {
@@ -576,7 +588,7 @@ def main():
                     st.session_state.config_manager.config['pdf_settings']['templates'] = templates
                     st.session_state.config_manager.save_config()
                     st.success("テンプレートを保存しました")
-                    st.rerun()
+                    st.experimental_rerun()
                 else:
                     st.error("テンプレート名を入力してください")
 
