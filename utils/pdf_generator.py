@@ -103,6 +103,9 @@ class PDFGenerator:
         import seaborn as sns
         from io import BytesIO
         
+        # フォント設定
+        plt.rcParams['font.family'] = self.font_name
+        
         # 表示用の列名を準備
         display_cols = [column_names.get(col, col) for col in corr_data.columns]
         
@@ -137,6 +140,9 @@ class PDFGenerator:
         """散布図の作成"""
         import matplotlib.pyplot as plt
         from io import BytesIO
+        
+        # フォント設定
+        plt.rcParams['font.family'] = self.font_name
         
         # プロットサイズの設定
         plt.figure(figsize=(10, 8))
