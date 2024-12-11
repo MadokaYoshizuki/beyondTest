@@ -12,16 +12,32 @@ class Visualizer:
         with pd.ExcelWriter(excel_path, engine='openpyxl', mode='w') as writer:
             if isinstance(data_dict, dict):
                 for sheet_name, df in data_dict.items():
-                    df.to_excel(writer,
-                                sheet_name=sheet_name,
-                                index=True,
-                                header=True,
-                                engine='openpyxl')
+                    if isinstance(df, pd.DataFrame):
+                        # データフレームの場合は直接書き込み
+                        df.to_excel(writer,
+                                  sheet_name=sheet_name,
+                                  index=True,
+                                  header=True,
+                                  engine='openpyxl')
+                    elif isinstance(df, dict):
+                        # 辞書の場合はデータフレームに変換して書き込み
+                        pd.DataFrame(df).to_excel(writer,
+                                               sheet_name=sheet_name,
+                                               index=True,
+                                               header=True,
+                                               engine='openpyxl')
+                    else:
+                        # その他の形式の場合は文字列に変換してデータフレームとして書き込み
+                        pd.DataFrame({'値': [str(df)]}).to_excel(writer,
+                                                              sheet_name=sheet_name,
+                                                              index=False,
+                                                              header=True,
+                                                              engine='openpyxl')
             else:
                 data_dict.to_excel(writer,
-                                   index=True,
-                                   header=True,
-                                   engine='openpyxl')
+                                 index=True,
+                                 header=True,
+                                 engine='openpyxl')
 
         with open(excel_path, 'rb') as f:
             st.download_button(
