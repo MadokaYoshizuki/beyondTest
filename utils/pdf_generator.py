@@ -375,9 +375,8 @@ class PDFGenerator:
             # 要素の準備
             elements = []
             
-            # タイトルページと目次の追加
+            # タイトルページの追加
             elements.extend(self._create_title_page(template['title'], template.get('description', '')))
-            elements.extend(self._create_toc(template['sections']))
 
             # セクションの生成
             for i, section in enumerate(template['sections'], 1):
