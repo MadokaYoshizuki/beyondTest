@@ -11,45 +11,51 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import os
 import streamlit as st
 from datetime import datetime
+import matplotlib
+matplotlib.use('Agg')  # バックエンドをAggに設定
 
 class PDFGenerator:
     def __init__(self, config_manager=None):
-        # 日本語フォントの設定
+        # デフォルトフォントの設定
         self.font_name = 'Helvetica'
+        
+        if config_manager is None:
+            st.warning("設定マネージャーが提供されていません")
+            return
+        
         try:
-            if config_manager is None:
-                st.warning("設定マネージャーが提供されていません")
-                return
-                
+            # フォントディレクトリの確認
+            if not os.path.exists('fonts'):
+                os.makedirs('fonts')
+            
             # configからフォント設定を読み込む
             font_config = config_manager.config.get('pdf_font', {})
             if font_config and os.path.exists(font_config.get('path', '')):
                 try:
                     font_path = font_config['path']
                     font_name = os.path.splitext(font_config['filename'])[0]
+                    
+                    # フォントの登録
                     pdfmetrics.registerFont(TTFont(font_name, font_path))
                     self.font_name = font_name
                     
                     # Matplotlibのグローバル設定
-                    import matplotlib.pyplot as plt
-                    plt.rcParams['font.family'] = self.font_name
-                    plt.rcParams['axes.unicode_minus'] = False
-                    plt.rcParams['font.size'] = 12
+                    matplotlib.rcParams['font.family'] = self.font_name
+                    matplotlib.rcParams['font.sans-serif'] = [self.font_name, 'sans-serif']
+                    matplotlib.rcParams['axes.unicode_minus'] = False
+                    matplotlib.rcParams['font.size'] = 12
                     
-                    st.success(f"日本語フォント '{font_config['filename']}' を正常に読み込みました")
+                    st.info(f"フォント '{font_config['filename']}' を使用します")
                 except Exception as e:
                     st.error(f"フォントの読み込み中にエラーが発生しました: {str(e)}")
-                    st.error(f"詳細: {str(e.__class__.__name__)}")
+                    self.font_name = 'Helvetica'
             else:
-                st.warning("日本語フォントが見つかりません。フォント設定セクションからアップロードしてください。")
-            
-            if self.font_name == 'Helvetica':
-                st.warning("日本語フォントが見つかりません。代替フォントを使用します。")
+                st.info("デフォルトフォントを使用します")
         except Exception as e:
             st.error(f"フォント設定中にエラーが発生しました: {str(e)}")
-            st.error(f"詳細: {str(e.__class__.__name__)}")
 
         # スタイルの設定
         self.styles = getSampleStyleSheet()
