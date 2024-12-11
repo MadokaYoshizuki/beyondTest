@@ -100,6 +100,8 @@ class PDFGenerator:
     def _create_heatmap(self, corr_data, column_names):
         """相関係数ヒートマップの作成"""
         import plotly.graph_objects as go
+        import os
+        from playwright.sync_api import sync_playwright
         from io import BytesIO
         
         # 表示用の列名を準備
@@ -127,17 +129,34 @@ class PDFGenerator:
             xaxis=dict(tickangle=45),
         )
         
-        # SVG形式で保存
-        import plotly.io as pio
-        svg_bytes = pio.to_image(fig, format="svg", width=1000, height=800)
-        img_stream = BytesIO(svg_bytes)
+        # 一時HTMLファイルとして保存
+        temp_html = "temp/heatmap.html"
+        os.makedirs("temp", exist_ok=True)
+        fig.write_html(temp_html)
+        
+        # PlaywrightでHTMLをPNGに変換
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page(viewport={'width': 1000, 'height': 800})
+            page.goto(f'file://{os.path.abspath(temp_html)}')
+            page.wait_for_load_state('networkidle')
+            img_bytes = page.screenshot()
+            browser.close()
+        
+        # 画像をBytesIOに変換
+        img_stream = BytesIO(img_bytes)
         img_stream.seek(0)
+        
+        # 一時ファイルを削除
+        os.remove(temp_html)
         
         return img_stream
 
     def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
         """散布図の作成"""
         import plotly.graph_objects as go
+        import os
+        from playwright.sync_api import sync_playwright
         from io import BytesIO
         
         # 散布図の作成
@@ -169,11 +188,26 @@ class PDFGenerator:
         fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
         fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
         
-        # SVG形式で保存
-        import plotly.io as pio
-        svg_bytes = pio.to_image(fig, format="svg", width=800, height=600)
-        img_stream = BytesIO(svg_bytes)
+        # 一時HTMLファイルとして保存
+        temp_html = "temp/scatter.html"
+        os.makedirs("temp", exist_ok=True)
+        fig.write_html(temp_html)
+        
+        # PlaywrightでHTMLをPNGに変換
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page(viewport={'width': 800, 'height': 600})
+            page.goto(f'file://{os.path.abspath(temp_html)}')
+            page.wait_for_load_state('networkidle')
+            img_bytes = page.screenshot()
+            browser.close()
+        
+        # 画像をBytesIOに変換
+        img_stream = BytesIO(img_bytes)
         img_stream.seek(0)
+        
+        # 一時ファイルを削除
+        os.remove(temp_html)
         
         return img_stream
 
