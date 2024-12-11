@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -10,9 +9,6 @@ from reportlab.lib.units import inch, cm
 from reportlab.platypus import Image
 from utils.pdf_generator import PDFGenerator
 from utils.config_manager import ConfigManager
-import plotly.express as px
-import plotly.graph_objects as go
-import pandas as pd
 
 
 class Visualizer:
@@ -250,16 +246,13 @@ class Visualizer:
                     self._generate_analysis_pdf(df, column_names, question_groups, "重要度満足度", selected_attribute)
                     st.success("重要度-満足度分析のPDFを生成しました")
 
-    def _display_correlation_heatmap(self,
-                                     df,
-                                     column_names,
-                                     question_groups=None):
+    def _display_correlation_heatmap(self, df, column_names, question_groups=None):
         numeric_columns = df.select_dtypes(include=['number']).columns
         if not numeric_columns.empty:
             # 表示モードの選択
             correlation_mode = st.radio("相関分析の表示モード:",
-                                        ["質問間の相関", "質問グループ間の相関"],
-                                        key="correlation_mode")
+                                     ["質問間の相関", "質問グループ間の相関"],
+                                     key="correlation_mode")
 
             if correlation_mode == "質問間の相関":
                 # 質問グループの選択（質問間の相関モードの場合のみ表示）
@@ -280,14 +273,14 @@ class Visualizer:
 
                 fig = go.Figure(
                     data=go.Heatmap(z=corr_data,
-                                    x=display_columns,
-                                    y=display_columns,
-                                    colorscale='RdBu',
-                                    text=[[f'{val:.2f}' for val in row]
-                                          for row in corr_data.values],
-                                    texttemplate='%{text}',
-                                    textfont={"size": 10},
-                                    hoverongaps=False))
+                                  x=display_columns,
+                                  y=display_columns,
+                                  colorscale='RdBu',
+                                  text=[[f'{val:.2f}' for val in row]
+                                       for row in corr_data.values],
+                                  texttemplate='%{text}',
+                                  textfont={"size": 10},
+                                  hoverongaps=False))
 
                 title = "質問間の相関係数"
 
@@ -313,24 +306,66 @@ class Visualizer:
 
                 fig = go.Figure(
                     data=go.Heatmap(z=corr_data,
-                                    x=group_names,
-                                    y=group_names,
-                                    colorscale='RdBu',
-                                    text=[[f'{val:.2f}' for val in row]
-                                          for row in corr_data.values],
-                                    texttemplate='%{text}',
-                                    textfont={"size": 12},
-                                    hoverongaps=False))
+                                  x=group_names,
+                                  y=group_names,
+                                  colorscale='RdBu',
+                                  text=[[f'{val:.2f}' for val in row]
+                                       for row in corr_data.values],
+                                  texttemplate='%{text}',
+                                  textfont={"size": 12},
+                                  hoverongaps=False))
 
                 title = "質問グループ間の相関係数"
 
             fig.update_layout(title=title,
-                              width=800,
-                              height=800,
-                              xaxis={'tickangle': 45},
-                              yaxis={'tickangle': 0})
+                           width=800,
+                           height=800,
+                           xaxis={'tickangle': 45},
+                           yaxis={'tickangle': 0})
 
+            # ヒートマップを表示
             st.plotly_chart(fig)
+
+            # PDF出力ボタン
+            if st.button("ヒートマップを印刷", key="heatmap_pdf"):
+                try:
+                    # PDFファイル名を生成
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"correlation_heatmap_{timestamp}.pdf"
+                    
+                    # PDFを生成
+                    pdf_generator = PDFGenerator(ConfigManager())
+                    
+                    # プロットを画像として保存
+                    img_bytes = fig.to_image(format="png", width=800, height=800)
+                    
+                    # PDFを生成して保存
+                    pdf_path = f"reports/{filename}"
+                    from reportlab.pdfgen import canvas
+                    c = canvas.Canvas(pdf_path)
+                    
+                    # 画像をPDFに追加
+                    c.drawImage(BytesIO(img_bytes), 0, 0, width=8*inch, height=8*inch)
+                    c.save()
+                    
+                    # PDFをダウンロード
+                    with open(pdf_path, "rb") as pdf_file:
+                        st.download_button(
+                            label="PDFをダウンロード",
+                            data=pdf_file,
+                            file_name=filename,
+                            mime="application/pdf"
+                        )
+                    
+                    # 一時ファイルを削除
+                    import os
+                    os.remove(pdf_path)
+                    
+                    st.success("PDFを生成しました")
+                except Exception as e:
+                    st.error(f"PDF生成中にエラーが発生しました: {str(e)}")
+                    import traceback
+                    st.error(traceback.format_exc())
         else:
             st.info("数値データが見つかりませんでした。")
 
