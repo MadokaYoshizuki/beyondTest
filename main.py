@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import json
+import base64
+import tempfile
 from utils.data_processor import DataProcessor
 from utils.config_manager import ConfigManager
 from utils.visualization import Visualizer
@@ -25,8 +27,7 @@ def main():
         "2.データ分析",
         "3.設定",
         "4.集計",
-        "5.可視化",
-        "6.PDF出力"
+        "5.可視化"
     ]
 
     # サイドバーにタイトルを追加
@@ -494,56 +495,62 @@ def main():
     elif st.session_state.current_menu == "5.可視化":
         st.markdown("## 5. 可視化")
         st.markdown("---")
+        
+        # 可視化コンテンツの表示
         st.session_state.visualizer.display_dashboard(
             st.session_state.data_processor.dfs,
             st.session_state.config_manager
         )
-
-    elif st.session_state.current_menu == "6.PDF出力":
-        st.markdown("## 6. PDF出力")
+        
+        # PDF出力ボタン
         st.markdown("---")
-        
-        output_type = st.radio(
-            "PDF出力タイプを選択:",
-            ["現在の画面をPDF出力", "レポート形式でPDF出力"]
-        )
-        
-        if output_type == "現在の画面をPDF出力":
-            if st.button("現在の画面をPDF出力"):
-                # 現在の画面のHTMLを取得
-                html_content = """
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <title>意識調査データ分析レポート</title>
-                    <style>
-                        body { font-family: sans-serif; }
-                        .stMarkdown { margin: 1em 0; }
-                        table { border-collapse: collapse; width: 100%; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f5f5f5; }
-                    </style>
-                </head>
-                <body>
-                    <div class="stApp">
-                """ + st.markdown("", unsafe_allow_html=True).__dict__["_parent_frame"].markdown + """
-                    </div>
-                </body>
-                </html>
-                """
+        if st.button("現在の画面をPDF出力"):
+            # 現在の可視化内容のHTML生成
+            html_content = """
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>意識調査データ分析 - 可視化レポート</title>
+                <style>
+                    body { font-family: sans-serif; margin: 2em; }
+                    h1, h2 { color: #1f77b4; }
+                    .chart { margin: 2em 0; }
+                    .stMarkdown { margin: 1em 0; }
+                    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f5f5f5; }
+                </style>
+            </head>
+            <body>
+                <h1>意識調査データ分析 - 可視化レポート</h1>
+                <div class="visualization-content">
+            """
+            
+            # 可視化コンテンツの追加
+            for i, df in enumerate(st.session_state.data_processor.dfs):
+                html_content += f"<h2>データセット {i+1} ({st.session_state.data_processor.dates[i]})</h2>"
                 
-                pdf_generator = PDFGenerator()
-                pdf_generator.generate_from_html(html_content)
-                
-        else:
-            if st.button("レポート形式でPDF出力"):
-                pdf_generator = PDFGenerator()
-                pdf_path = pdf_generator.generate_pdf(
-                    st.session_state.data_processor.dfs,
-                    st.session_state.config_manager,
-                    st.session_state.visualizer
+                # 重要度-満足度散布図の画像をBase64で埋め込み
+                fig = st.session_state.visualizer.create_importance_satisfaction_plot(
+                    df, st.session_state.config_manager
                 )
-                st.success(f"PDFを生成しました: {pdf_path}")
+                with tempfile.NamedTemporaryFile(suffix='.png') as tmp:
+                    fig.write_image(tmp.name)
+                    with open(tmp.name, "rb") as img:
+                        img_base64 = base64.b64encode(img.read()).decode()
+                        html_content += f'<div class="chart"><img src="data:image/png;base64,{img_base64}" /></div>'
+            
+            html_content += """
+                </div>
+            </body>
+            </html>
+            """
+            
+            # PDFの生成
+            pdf_generator = PDFGenerator()
+            pdf_generator.generate_from_html(html_content)
+
+    
 
 if __name__ == "__main__":
     main()
