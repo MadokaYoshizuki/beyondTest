@@ -511,11 +511,61 @@ def main():
         with tab1:
             st.markdown("### 帳票テンプレート管理")
             
-            # テンプレート一覧の表示
-            templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
-            
-            if templates:
-                st.write("登録済みテンプレート:")
+            try:
+                # テンプレート一覧の表示
+                templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
+                
+                if templates:
+                    st.write("登録済みテンプレート:")
+                    for template_name, template_data in templates.items():
+                        with st.expander(f"📄 {template_name}: {template_data['title']}", expanded=False):
+                            st.write(f"説明: {template_data.get('description', '')}")
+                            
+                            # フィルター設定の表示
+                            if filters := template_data.get('filters', {}):
+                                st.write("データ絞り込み条件:")
+                                for attr, values in filters.items():
+                                    st.write(f"- {attr}: {', '.join(values)}")
+                            
+                            # セクション一覧
+                            st.write("出力内容:")
+                            for section in template_data.get('sections', []):
+                                st.write(f"- {section['title']}")
+                                if description := section.get('description'):
+                                    st.caption(description)
+                            
+                            # PDFプレビューボタン
+                            col1, col2 = st.columns([1, 4])
+                            with col1:
+                                if st.button("PDF出力", key=f"pdf_{template_name}"):
+                                    if not hasattr(st.session_state.data_processor, 'dfs') or not st.session_state.data_processor.dfs:
+                                        st.error("データが読み込まれていません。先にデータをアップロードしてください。")
+                                    else:
+                                        st.session_state.pdf_generator = PDFGenerator(st.session_state.config_manager)
+                                        try:
+                                            output_path = st.session_state.pdf_generator.generate_pdf(
+                                                st.session_state.data_processor.dfs,
+                                                st.session_state.config_manager,
+                                                st.session_state.visualizer,
+                                                template_name
+                                            )
+                                            if output_path and os.path.exists(output_path):
+                                                with open(output_path, "rb") as pdf_file:
+                                                    st.download_button(
+                                                        label="PDFをダウンロード",
+                                                        data=pdf_file,
+                                                        file_name=f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                                        mime="application/pdf"
+                                                    )
+                                            else:
+                                                st.error("PDFの生成に失敗しました")
+                                        except Exception as e:
+                                            st.error(f"PDF生成中にエラーが発生しました: {str(e)}")
+            except Exception as e:
+                st.error(f"テンプレート一覧の表示中にエラーが発生しました: {str(e)}")
+                
+                if templates:
+                    st.write("登録済みテンプレート:")
                 for template_name, template_data in templates.items():
                     with st.expander(f"📄 {template_name}: {template_data['title']}", expanded=False):
                         st.write(f"説明: {template_data.get('description', '')}")
@@ -538,20 +588,25 @@ def main():
                         with col1:
                             if st.button("PDF出力", key=f"pdf_{template_name}"):
                                 st.session_state.pdf_generator = PDFGenerator(st.session_state.config_manager)
-                                output_path = st.session_state.pdf_generator.generate_pdf(
-                                    st.session_state.data_processor.dfs,
-                                    st.session_state.config_manager,
-                                    st.session_state.visualizer,
-                                    template_name
-                                )
-                                if output_path:
-                                    with open(output_path, "rb") as pdf_file:
-                                        st.download_button(
-                                            label="PDFをダウンロード",
-                                            data=pdf_file,
-                                            file_name=f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                            mime="application/pdf"
-                                        )
+                                try:
+                                    output_path = st.session_state.pdf_generator.generate_pdf(
+                                        st.session_state.data_processor.dfs,
+                                        st.session_state.config_manager,
+                                        st.session_state.visualizer,
+                                        template_name
+                                    )
+                                    if output_path and os.path.exists(output_path):
+                                        with open(output_path, "rb") as pdf_file:
+                                            st.download_button(
+                                                label="PDFをダウンロード",
+                                                data=pdf_file,
+                                                file_name=f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                                mime="application/pdf"
+                                            )
+                                    else:
+                                        st.error("PDFの生成に失敗しました")
+                                except Exception as e:
+                                    st.error(f"PDF生成中にエラーが発生しました: {str(e)}")
             
             # 新規テンプレート作成
             st.markdown("### 新規テンプレート作成")
@@ -565,15 +620,27 @@ def main():
                 st.write("データ絞り込み条件")
                 filters = {}
                 if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
-                    for attr in st.session_state.config_manager.config.get('attributes', []):
-                        unique_values = list(st.session_state.data_processor.dfs[0][attr].unique())
-                        selected_values = st.multiselect(
-                            f"{attr}で絞り込み",
-                            ["全て"] + unique_values,
-                            default=["全て"]
-                        )
-                        if selected_values:
-                            filters[attr] = selected_values
+                    df = st.session_state.data_processor.dfs[0]
+                    attributes = st.session_state.config_manager.config.get('attributes', [])
+                    
+                    # 存在する属性のみを処理
+                    valid_attributes = [attr for attr in attributes if attr in df.columns]
+                    
+                    if valid_attributes:
+                        for attr in valid_attributes:
+                            try:
+                                unique_values = sorted(df[attr].dropna().unique().tolist())
+                                selected_values = st.multiselect(
+                                    f"{attr}で絞り込み",
+                                    ["全て"] + unique_values,
+                                    default=["全て"]
+                                )
+                                if selected_values and selected_values != ["全て"]:
+                                    filters[attr] = selected_values
+                            except Exception as e:
+                                st.error(f"属性 '{attr}' の処理中にエラーが発生しました: {str(e)}")
+                    else:
+                        st.info("利用可能な属性がありません。先に属性設定を行ってください。")
                 
                 # セクション設定
                 st.write("出力するセクション")

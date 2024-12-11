@@ -102,33 +102,7 @@
         }
     },
     "pdf_settings": {
-        "templates": {
-            "帳票1": {
-                "title": "基本分析レポート",
-                "description": "意識調査の基本的な分析結果をまとめたレポートです。",
-                "filters": {
-                    "拠点名称": ["全て"],
-                    "部署1名称": ["全て"]
-                },
-                "sections": [
-                    {
-                        "type": "数値表",
-                        "title": "属性別平均値一覧",
-                        "description": "各質問項目の属性別平均値を表示します。",
-                        "options": {
-                            "show_group_analysis": true,
-                            "show_question_analysis": true
-                        }
-                    },
-                    {
-                        "type": "重要度満足度",
-                        "title": "重要度-満足度分析",
-                        "description": "各項目の重要度と満足度の関係を分析したグラフです。",
-                        "options": {}
-                    }
-                ]
-            }
-        }
+        "templates": {}
     },
     "pdf_font": {
         "filename": "MSMINCHO.TTC",
