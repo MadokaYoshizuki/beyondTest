@@ -513,7 +513,62 @@ def main():
             st.markdown("### 帳票テンプレート管理")
             
             try:
-                # テンプレート一覧の表示
+                st.markdown("### 新規テンプレート作成")
+                with st.form("template_creation_form"):
+                    # 基本情報
+                    template_name = st.text_input("テンプレート名", help="例: 基本分析レポート")
+                    template_description = st.text_area("説明", help="レポートの概要や用途を記入してください")
+                    
+                    # データセット選択
+                    if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                        dataset_options = [f"データセット {i+1}" for i in range(len(st.session_state.data_processor.dfs))]
+                        selected_dataset = st.selectbox("分析対象のデータセット", dataset_options)
+                    
+                    # グラフ種類と分析単位の選択
+                    st.subheader("出力セクション設定")
+                    graph_type = st.selectbox(
+                        "グラフ種類",
+                        ["相関係数ヒートマップ", "回答の分布", "重要度-満足度分析"]
+                    )
+                    
+                    analysis_unit = st.radio(
+                        "分析単位",
+                        ["質問ごと", "質問グループごと"]
+                    )
+                    
+                    # 保存ボタン
+                    submitted = st.form_submit_button("テンプレートを保存")
+                    
+                    if submitted:
+                        if template_name:
+                            # テンプレートの保存
+                            new_template = {
+                                "title": template_name,
+                                "description": template_description,
+                                "dataset": selected_dataset if 'selected_dataset' in locals() else "データセット 1",
+                                "sections": [
+                                    {
+                                        "type": graph_type.replace("ヒートマップ", "").replace("分析", ""),
+                                        "title": graph_type,
+                                        "description": "",
+                                        "options": {
+                                            "analysis_unit": analysis_unit
+                                        }
+                                    }
+                                ]
+                            }
+                            
+                            # 設定の保存
+                            templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
+                            templates[template_name] = new_template
+                            st.session_state.config_manager.config['pdf_settings']['templates'] = templates
+                            st.session_state.config_manager.save_config()
+                            st.success("テンプレートを保存しました")
+                            st.experimental_rerun()
+                        else:
+                            st.error("テンプレート名を入力してください")
+
+                st.markdown("### 登録済みテンプレート")
                 templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
                 
                 if templates:

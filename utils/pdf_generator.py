@@ -105,21 +105,20 @@ class PDFGenerator:
 
         return elements
 
-    def _create_toc(self, sections):
-        """目次の作成"""
+    def _create_sections(self, sections, dfs, config_manager):
+        """セクションの作成"""
         elements = []
-        styles = self.styles
-
-        elements.append(Paragraph("目次", styles['Heading1']))
-        elements.append(Spacer(1, 1*cm))
-
+        
         for i, section in enumerate(sections, 1):
-            elements.append(Paragraph(
-                f"{i}. {section['title']}", 
-                styles['JapaneseParagraph']
-            ))
-
-        elements.append(PageBreak())
+            if section['type'] == '相関係数':
+                self._add_correlation_analysis_section(elements, dfs, config_manager, i, section)
+            elif section['type'] == '回答分布':
+                self._add_numeric_analysis_section(elements, dfs, config_manager, i, section)
+            elif section['type'] == '重要度満足度':
+                self._add_importance_satisfaction_section(elements, dfs, config_manager, i, section)
+            
+            elements.append(PageBreak())
+        
         return elements
 
     def _create_heatmap(self, corr_data, column_names):
