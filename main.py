@@ -520,26 +520,20 @@ def main():
                 dataset_options = [f"データセット {i+1}" for i in range(len(st.session_state.data_processor.dfs))]
                 selected_dataset = st.selectbox("分析対象のデータセット", dataset_options)
             
-            # 絞り込み条件
-            st.subheader("データ絞り込み条件")
-            filters = {}
-            
+            # 属性選択
+            selected_attribute = None
             if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
                 df = st.session_state.data_processor.dfs[0]
                 attributes = st.session_state.config_manager.config.get('attributes', [])
                 
                 if attributes:
-                    for attr in attributes:
-                        if attr in df.columns:
-                            unique_values = sorted(df[attr].unique().tolist())
-                            selected_values = st.multiselect(
-                                f"{attr}による絞り込み",
-                                unique_values,
-                                default=unique_values,
-                                help=f"{attr}の値で絞り込む場合は選択してください"
-                            )
-                            if selected_values and len(selected_values) < len(unique_values):
-                                filters[attr] = selected_values
+                    selected_attribute = st.selectbox(
+                        "属性による分析",
+                        ["なし"] + attributes,
+                        help="選択した属性ごとの分析グラフを生成します"
+                    )
+                    if selected_attribute == "なし":
+                        selected_attribute = None
             
             # 出力セクション設定
             st.subheader("出力セクション設定")
@@ -563,7 +557,7 @@ def main():
                         "title": template_name,
                         "description": template_description,
                         "dataset": selected_dataset if 'selected_dataset' in locals() else "データセット 1",
-                        "filters": filters,
+                        "attribute": selected_attribute,
                         "sections": [
                             {
                                 "type": graph_type.replace("ヒートマップ", "").replace("分析", ""),
@@ -617,7 +611,7 @@ def main():
                                         mime="application/pdf"
                                     )
         else:
-            st.info("登録済みのテンプレートがありません。")
+            st.info("登録済みのテンプレートがありません")
 
 if __name__ == "__main__":
     main()

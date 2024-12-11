@@ -375,23 +375,38 @@ class PDFGenerator:
             # 要素の準備
             elements = []
             
-            # タイトルページの追加
-            elements.extend(self._create_title_page(template['title'], template.get('description', '')))
+            # タイトルページの追加（テンプレートで指定されたもののみ）
+            title = template.get('title', '')
+            description = template.get('description', '')
+            elements.extend(self._create_title_page(title, description))
 
-            # セクションの生成
-            for i, section in enumerate(template['sections'], 1):
-                try:
-                    if section['type'] == '回答分布':
-                        self._add_numeric_analysis_section(elements, dfs, config_manager, i, section)
-                    elif section['type'] == '相関係数':
-                        self._add_correlation_analysis_section(elements, dfs, config_manager, i, section)
-                    elif section['type'] == '重要度満足度':
-                        self._add_importance_satisfaction_section(elements, dfs, config_manager, i, section)
-                    st.success(f"セクション {section['title']} を生成しました")
-                except Exception as e:
-                    st.error(f"セクション {section['title']} の生成中にエラーが発生: {str(e)}")
-                    import traceback
-                    st.error(traceback.format_exc())
+            # 属性の取得
+            selected_attribute = template.get('attribute')
+            if selected_attribute:
+                df = dfs[0]  # 最初のデータセットを使用
+                
+                # 全体のグラフを追加
+                elements.append(Paragraph("【全体】", self.styles['Heading2']))
+                elements.append(Spacer(1, 0.5*cm))
+                self._add_section_by_template(elements, dfs, config_manager, template['sections'][0])
+                elements.append(PageBreak())
+
+                # 属性値ごとのグラフを追加
+                unique_values = sorted(df[selected_attribute].unique())
+                for value in unique_values:
+                    # 属性値でフィルタリングしたデータセットを作成
+                    filtered_dfs = [df[df[selected_attribute] == value] for df in dfs]
+                    
+                    # 属性値の見出しを追加
+                    elements.append(Paragraph(f"【{value}】", self.styles['Heading2']))
+                    elements.append(Spacer(1, 0.5*cm))
+                    
+                    # テンプレートで指定されたセクションを追加
+                    self._add_section_by_template(elements, filtered_dfs, config_manager, template['sections'][0])
+                    elements.append(PageBreak())
+            else:
+                # 属性指定がない場合は全体のグラフのみ
+                self._add_section_by_template(elements, dfs, config_manager, template['sections'][0])
 
             # PDFの生成
             doc.build(elements)
@@ -402,3 +417,17 @@ class PDFGenerator:
             import traceback
             st.error(f"エラーの詳細:\n{traceback.format_exc()}")
             return None
+
+    def _add_section_by_template(self, elements, dfs, config_manager, section):
+        """テンプレートに基づいてセクションを追加"""
+        try:
+            if section['type'] == '回答分布':
+                self._add_numeric_analysis_section(elements, dfs, config_manager, 1, section)
+            elif section['type'] == '相関係数':
+                self._add_correlation_analysis_section(elements, dfs, config_manager, 1, section)
+            elif section['type'] == '重要度満足度':
+                self._add_importance_satisfaction_section(elements, dfs, config_manager, 1, section)
+        except Exception as e:
+            st.error(f"セクション {section['title']} の生成中にエラーが発生: {str(e)}")
+            import traceback
+            st.error(traceback.format_exc())
