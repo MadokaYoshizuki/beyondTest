@@ -2,11 +2,12 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-
-
 import plotly.io as pio
+import matplotlib.pyplot as plt
+import seaborn as sns
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.utils import ImageReader
 import io
 class Visualizer:
 
@@ -635,6 +636,35 @@ class Visualizer:
         # 数値回答の分析を実行
         self._display_numeric_analysis(df, selected_attribute, config_manager)
 
+    def _save_current_plots_to_pdf(self):
+        """現在表示されているPlotlyグラフをPDFとして保存する"""
+        # 一時的なバッファを作成
+        buffer = io.BytesIO()
+
+        # PDFを作成
+        c = canvas.Canvas(buffer, pagesize=A4)
+
+        # 現在のPlotlyグラフを画像として保存
+        for fig in [st.session_state.get('current_plot', None)]:
+            if fig:
+                # グラフを画像として保存
+                img_bytes = fig.to_image(format="png", width=800, height=600)
+                img_buffer = io.BytesIO(img_bytes)
+
+                # PDFに画像を配置
+                c.drawImage(img_buffer, 50, 500, width=500, height=300)
+
+        c.save()
+        buffer.seek(0)
+
+        # PDFをダウンロード
+        st.download_button(
+            label="グラフをPDFでダウンロード",
+            data=buffer,
+            file_name="visualization.pdf",
+            mime="application/pdf"
+        )
+        
     def _display_numeric_analysis(self, df, attribute, config_manager):
         column_names = config_manager.config.get('column_names', {})
         question_groups = config_manager.config.get('question_groups', {})
@@ -751,34 +781,6 @@ class Visualizer:
                             group_results['平均'][group_name][
                                 value] = '{:g}'.format(
                                     subset_mean) if pd.notnull(
-    def _save_current_plots_to_pdf(self):
-        """現在表示されているPlotlyグラフをPDFとして保存する"""
-        # 一時的なバッファを作成
-        buffer = io.BytesIO()
-        
-        # PDFを作成
-        c = canvas.Canvas(buffer, pagesize=A4)
-        
-        # 現在のPlotlyグラフを画像として保存
-        for fig in [st.session_state.get('current_plot', None)]:
-            if fig:
-                # グラフを画像として保存
-                img_bytes = fig.to_image(format="png", width=800, height=600)
-                img_buffer = io.BytesIO(img_bytes)
-                
-                # PDFに画像を配置
-                c.drawImage(img_buffer, 50, 500, width=500, height=300)
-        
-        c.save()
-        buffer.seek(0)
-        
-        # PDFをダウンロード
-        st.download_button(
-            label="グラフをPDFでダウンロード",
-            data=buffer,
-            file_name="visualization.pdf",
-            mime="application/pdf"
-        )
                                         subset_mean) else '-'
 
                             # 属性値ごとの100点換算
@@ -1024,3 +1026,6 @@ class Visualizer:
             })
 
         self._save_to_excel(excel_data, f"numeric_analysis_{attribute}")
+
+
+
