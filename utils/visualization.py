@@ -4,6 +4,10 @@ import plotly.graph_objects as go
 import pandas as pd
 
 
+import plotly.io as pio
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+import io
 class Visualizer:
 
     def _save_to_excel(self, data_dict, filename):
@@ -182,7 +186,13 @@ class Visualizer:
         st.subheader("【数値回答】")
 
         # 1. 相関係数ヒートマップ
-        st.write("**1. 相関係数ヒートマップ**")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.write("**1. 相関係数ヒートマップ**")
+        with col2:
+            if st.button("PDF出力", key="correlation_heatmap_pdf"):
+                self._save_current_plots_to_pdf()
+                st.success("グラフをPDFとして保存しました")
         self._display_correlation_heatmap(df, column_names, question_groups)
 
         # 2. 回答の件数と構成比の帯グラフ
@@ -278,6 +288,8 @@ class Visualizer:
                               xaxis={'tickangle': 45},
                               yaxis={'tickangle': 0})
 
+            # セッション状態にグラフを保存
+            st.session_state.current_plot = fig
             st.plotly_chart(fig)
         else:
             st.info("数値データが見つかりませんでした。")
@@ -739,6 +751,34 @@ class Visualizer:
                             group_results['平均'][group_name][
                                 value] = '{:g}'.format(
                                     subset_mean) if pd.notnull(
+    def _save_current_plots_to_pdf(self):
+        """現在表示されているPlotlyグラフをPDFとして保存する"""
+        # 一時的なバッファを作成
+        buffer = io.BytesIO()
+        
+        # PDFを作成
+        c = canvas.Canvas(buffer, pagesize=A4)
+        
+        # 現在のPlotlyグラフを画像として保存
+        for fig in [st.session_state.get('current_plot', None)]:
+            if fig:
+                # グラフを画像として保存
+                img_bytes = fig.to_image(format="png", width=800, height=600)
+                img_buffer = io.BytesIO(img_bytes)
+                
+                # PDFに画像を配置
+                c.drawImage(img_buffer, 50, 500, width=500, height=300)
+        
+        c.save()
+        buffer.seek(0)
+        
+        # PDFをダウンロード
+        st.download_button(
+            label="グラフをPDFでダウンロード",
+            data=buffer,
+            file_name="visualization.pdf",
+            mime="application/pdf"
+        )
                                         subset_mean) else '-'
 
                             # 属性値ごとの100点換算

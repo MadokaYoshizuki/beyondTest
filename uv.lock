@@ -583,6 +583,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "openpyxl" },
+    { name = "pandas" },
     { name = "plotly" },
     { name = "reportlab" },
     { name = "streamlit" },
@@ -591,6 +592,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "pandas", specifier = ">=2.2.3" },
     { name = "plotly", specifier = ">=5.24.1" },
     { name = "reportlab", specifier = ">=4.2.5" },
     { name = "streamlit", specifier = ">=1.40.2" },
