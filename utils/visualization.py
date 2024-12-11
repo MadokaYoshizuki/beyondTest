@@ -633,6 +633,33 @@ class Visualizer:
 
         df = dfs[selected_year_idx]
 
+    def _create_matplotlib_heatmap(self, corr_data, display_columns, title):
+        """matplotlibを使用してヒートマップを生成"""
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(corr_data,
+                    xticklabels=display_columns,
+                    yticklabels=display_columns,
+                    cmap='RdBu_r',
+                    annot=True,
+                    fmt='.2f',
+                    center=0,
+                    square=True,
+                    cbar_kws={'label': '相関係数'})
+        
+        plt.title(title, pad=20)
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+        plt.tight_layout()
+        
+        # Streamlit用にプロットを表示
+        st.pyplot(plt)
+        
+        # PDF出力用にfigureを保存
+        if not hasattr(st.session_state, 'current_plot_matplotlib'):
+            st.session_state.current_plot_matplotlib = plt.gcf()
+        
+        # プロットをクリア
+        plt.close()
         # 数値回答の分析を実行
         self._display_numeric_analysis(df, selected_attribute, config_manager)
 
