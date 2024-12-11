@@ -27,8 +27,7 @@ def main():
         "3.設定",
         "4.集計",
         "5.可視化",
-        "6.PDF出力",
-        "7.印刷プレビュー"
+        "6.PDF出力"
     ]
 
     # サイドバーにタイトルを追加
@@ -504,134 +503,6 @@ def main():
     elif st.session_state.current_menu == "6.PDF出力":
         st.markdown("## 6. PDF出力")
         st.markdown("---")
-        
-    elif st.session_state.current_menu == "7.印刷プレビュー":
-        st.markdown("## 印刷プレビュー")
-        st.markdown("##### ブラウザの印刷機能を使用して、このページを印刷することができます。")
-        st.markdown("---")
-        
-        if not hasattr(st.session_state.data_processor, 'dfs') or not st.session_state.data_processor.dfs:
-            st.info("データを読み込んでください。")
-            return
-
-        # 実施概要
-        with st.expander("1. 実施概要", expanded=True):
-            st.markdown("本レポートは、意識調査の分析結果をまとめたものです。")
-            for i, df in enumerate(st.session_state.data_processor.dfs):
-                st.markdown(f"第{i+1}回調査: {len(df)}件の回答")
-        
-        # 数値分析
-        with st.expander("2. 数値分析結果", expanded=True):
-            st.markdown("各設問項目の数値データについて、基本統計量を算出し分析を行いました。")
-            for i, df in enumerate(st.session_state.data_processor.dfs):
-                with st.container():
-                    st.subheader(f"データセット {i+1}")
-                    numeric_df = df.select_dtypes(include=['number'])
-                    if not numeric_df.empty:
-                        stats = numeric_df.describe()
-                        st.dataframe(stats.style.format("{:.2f}"))
-                    st.markdown("---")  # セパレータを追加
-        
-        # 相関分析
-        with st.expander("3. 相関分析", expanded=True):
-            st.markdown("各設問項目間の相関関係を分析しました。")
-            for i, df in enumerate(st.session_state.data_processor.dfs):
-                with st.container():
-                    st.subheader(f"データセット {i+1}")
-                    numeric_columns = df.select_dtypes(include=['number']).columns
-                    if not numeric_columns.empty:
-                        corr_data = df[numeric_columns].corr()
-                        
-                        # Plotlyでヒートマップを作成
-                        import plotly.graph_objects as go
-                        
-                        column_names = st.session_state.config_manager.config.get('column_names', {})
-                        display_cols = [column_names.get(col, col) for col in corr_data.columns]
-                        
-                        fig = go.Figure(data=go.Heatmap(
-                            z=corr_data.values,
-                            x=display_cols,
-                            y=display_cols,
-                            text=corr_data.values.round(2),
-                            texttemplate='%{text:.2f}',
-                            textfont={"size": 10},
-                            colorscale='RdBu_r',
-                            zmid=0,
-                            colorbar=dict(title='相関係数')
-                        ))
-                        
-                        fig.update_layout(
-                            title='相関分析',
-                            width=800,
-                            height=800,
-                            xaxis=dict(tickangle=45),
-                        )
-                        
-                        # コンテナ内にチャートを配置
-                        chart_container = st.container()
-                        with chart_container:
-                            st.plotly_chart(fig, use_container_width=True)
-                        
-                    st.markdown("---")  # セパレータを追加
-        
-        # 重要度-満足度分析
-        with st.expander("4. 重要度-満足度分析", expanded=True):
-            st.markdown("各項目の重要度と満足度の関係を分析しました。")
-            
-            for i, df in enumerate(st.session_state.data_processor.dfs):
-                with st.container():
-                    st.subheader(f"データセット {i+1}")
-                    
-                    # データポイントの準備
-                    pairs = st.session_state.config_manager.config.get('importance_satisfaction_pairs', {})
-                    data_points = []
-                
-                for pair_name, pair_data in pairs.items():
-                    importance_col = pair_data['importance']
-                    satisfaction_col = pair_data['satisfaction']
-                    
-                    valid_data = df[[importance_col, satisfaction_col]].dropna()
-                    if not valid_data.empty:
-                        data_points.append({
-                            'name': pair_name,
-                            'importance': valid_data[importance_col].mean(),
-                            'satisfaction': valid_data[satisfaction_col].mean()
-                        })
-                
-                if data_points:
-                    import plotly.graph_objects as go
-                    import pandas as pd
-                    
-                    # データポイントをDataFrameに変換
-                    plot_data = pd.DataFrame(data_points)
-                    
-                    # 散布図の作成
-                    fig = go.Figure()
-                    
-                    fig.add_trace(go.Scatter(
-                        x=plot_data['importance'],
-                        y=plot_data['satisfaction'],
-                        mode='markers+text',
-                        text=plot_data['name'],
-                        textposition="top center",
-                        marker=dict(size=10),
-                    ))
-                    
-                    fig.update_layout(
-                        title='重要度-満足度分析',
-                        xaxis_title='重要度',
-                        yaxis_title='満足度',
-                        xaxis=dict(range=[2.0, 3.2]),
-                        yaxis=dict(range=[2.0, 3.6]),
-                        showlegend=False,
-                        width=800,
-                        height=600
-                    )
-                    
-                    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
-                    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
-                    
-                    st.plotly_chart(fig, use_container_width=True)
         
         # フォント設定
         with st.expander("フォント設定", expanded=True):

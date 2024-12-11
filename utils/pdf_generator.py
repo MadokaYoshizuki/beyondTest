@@ -99,105 +99,74 @@ class PDFGenerator:
 
     def _create_heatmap(self, corr_data, column_names):
         """相関係数ヒートマップの作成"""
-        import matplotlib
-        matplotlib.use('Agg')  # バックエンドを明示的に設定
         import matplotlib.pyplot as plt
         import seaborn as sns
         from io import BytesIO
         
-        try:
-            # フォント設定
-            plt.rcParams['font.family'] = self.font_name
-        
-        # 表示用の列名を準備
-        display_cols = [column_names.get(col, col) for col in corr_data.columns]
-        
-        # プロットサイズの設定
-        plt.figure(figsize=(12, 10))
-        
-        # ヒートマップの作成
-        sns.heatmap(
-            corr_data,
-            annot=True,
-            fmt='.2f',
-            cmap='RdBu_r',
-            center=0,
-            xticklabels=display_cols,
-            yticklabels=display_cols
-        )
-        
-        # タイトルと軸ラベルの設定
-            plt.title('相関分析', fontsize=16, pad=20)
-            plt.xticks(rotation=45, ha='right')
-            plt.tight_layout()
-            
-            # 画像をBytesIOに保存
-            img_stream = BytesIO()
-            plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=150)
-            img_stream.seek(0)
-            
-            return img_stream
-        except Exception as e:
-            st.error(f"ヒートマップの生成中にエラーが発生しました: {str(e)}")
-            raise
-        finally:
-            plt.close('all')  # 全てのプロットをクリーンアップ
-
-    def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
-        """散布図の作成"""
-        import matplotlib
-        matplotlib.use('Agg')  # バックエンドを明示的に設定
-        import matplotlib.pyplot as plt
-        from io import BytesIO
-        
-        try:
-            # フォント設定
-            plt.rcParams['font.family'] = self.font_name
+        # フォント設定
+        plt.rcParams['font.family'] = self.font_name
         
         # プロットサイズの設定
         plt.figure(figsize=(10, 8))
         
-        # 散布図の作成
-        plt.scatter(
-            data_points['importance'],
-            data_points['satisfaction'],
-            s=100
-        )
+        # ヒートマップの作成
+        display_cols = [column_names.get(col, col) for col in corr_data.columns]
+        sns.heatmap(corr_data, 
+                   xticklabels=display_cols,
+                   yticklabels=display_cols,
+                   annot=True,
+                   fmt='.2f',
+                   cmap='RdBu_r',
+                   center=0,
+                   cbar_kws={'label': '相関係数'})
         
-        # データポイントにラベルを追加
-        for idx, row in data_points.iterrows():
-            plt.annotate(
-                row['name'],
-                (row['importance'], row['satisfaction']),
-                xytext=(0, 10),
-                textcoords='offset points',
-                ha='center',
-                va='bottom',
-                fontsize=9
-            )
+        # 軸ラベルの回転
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+        plt.tight_layout()
         
-        # グラフの設定
-        plt.title(title, fontsize=16, pad=20)
-        plt.xlabel('重要度', fontsize=12)
-        plt.ylabel('満足度', fontsize=12)
-        plt.grid(True, linestyle='--', alpha=0.7)
+        # プロットをバイトストリームとして保存
+        img_stream = BytesIO()
+        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight')
+        img_stream.seek(0)
+        plt.close()
+        
+        return img_stream
+
+    def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
+        """散布図の作成"""
+        from io import BytesIO
+        
+        # フォント設定
+        plt.rcParams['font.family'] = self.font_name
+        
+        plt.figure(figsize=(10, 8))
+        
+        # 散布図のプロット
+        plt.scatter(data_points['importance'], data_points['satisfaction'])
+        
+        # ラベルの追加
+        for idx, point in data_points.iterrows():
+            plt.annotate(point['name'], 
+                        (point['importance'], point['satisfaction']),
+                        xytext=(5, 5), textcoords='offset points')
+        
+        # 軸の設定
         plt.xlim(2.0, 3.2)
         plt.ylim(2.0, 3.6)
+        plt.xlabel('重要度')
+        plt.ylabel('満足度')
+        plt.title(title)
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
         
-        # レイアウトの調整
-            plt.tight_layout()
-            
-            # 画像をBytesIOに保存
-            img_stream = BytesIO()
-            plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=150)
-            img_stream.seek(0)
-            
-            return img_stream
-        except Exception as e:
-            st.error(f"散布図の生成中にエラーが発生しました: {str(e)}")
-            raise
-        finally:
-            plt.close('all')  # 全てのプロットをクリーンアップ
+        # プロットをバイトストリームとして保存
+        img_stream = BytesIO()
+        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight')
+        img_stream.seek(0)
+        plt.close()
+        
+        return img_stream
 
     def _add_numeric_analysis_section(self, elements, dfs, config_manager, section_number, options):
         """数値分析のセクションを追加"""
@@ -260,9 +229,9 @@ class PDFGenerator:
                 corr_data = df[numeric_columns].corr()
                 
                 # ヒートマップの生成
-                img_file = self._create_heatmap(corr_data, column_names)
+                img_stream = self._create_heatmap(corr_data, column_names)
                 try:
-                    correlation_elements.append(Image(img_file, width=6*inch, height=6*inch))
+                    correlation_elements.append(Image(img_stream, width=6*inch, height=6*inch))
                 except Exception as e:
                     st.error(f"画像の追加中にエラーが発生しました: {str(e)}")
                 
@@ -324,9 +293,9 @@ class PDFGenerator:
                 plot_data = pd.DataFrame(data_points)
                 
                 # 散布図の生成
-                img_file = self._create_scatter_plot(plot_data)
+                img_stream = self._create_scatter_plot(plot_data)
                 try:
-                    is_elements.append(Image(img_file, width=6*inch, height=6*inch))
+                    is_elements.append(Image(img_stream, width=6*inch, height=6*inch))
                 except Exception as e:
                     st.error(f"画像の追加中にエラーが発生しました: {str(e)}")
             
