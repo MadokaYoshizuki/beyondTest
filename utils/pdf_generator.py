@@ -99,12 +99,15 @@ class PDFGenerator:
 
     def _create_heatmap(self, corr_data, column_names):
         """相関係数ヒートマップの作成"""
+        import matplotlib
+        matplotlib.use('Agg')  # バックエンドを明示的に設定
         import matplotlib.pyplot as plt
         import seaborn as sns
         from io import BytesIO
         
-        # フォント設定
-        plt.rcParams['font.family'] = self.font_name
+        try:
+            # フォント設定
+            plt.rcParams['font.family'] = self.font_name
         
         # 表示用の列名を準備
         display_cols = [column_names.get(col, col) for col in corr_data.columns]
@@ -124,25 +127,32 @@ class PDFGenerator:
         )
         
         # タイトルと軸ラベルの設定
-        plt.title('相関分析', fontsize=16, pad=20)
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
-        
-        # 画像をBytesIOに保存
-        img_stream = BytesIO()
-        plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=150)
-        plt.close()
-        img_stream.seek(0)
-        
-        return img_stream
+            plt.title('相関分析', fontsize=16, pad=20)
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            
+            # 画像をBytesIOに保存
+            img_stream = BytesIO()
+            plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=150)
+            img_stream.seek(0)
+            
+            return img_stream
+        except Exception as e:
+            st.error(f"ヒートマップの生成中にエラーが発生しました: {str(e)}")
+            raise
+        finally:
+            plt.close('all')  # 全てのプロットをクリーンアップ
 
     def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
         """散布図の作成"""
+        import matplotlib
+        matplotlib.use('Agg')  # バックエンドを明示的に設定
         import matplotlib.pyplot as plt
         from io import BytesIO
         
-        # フォント設定
-        plt.rcParams['font.family'] = self.font_name
+        try:
+            # フォント設定
+            plt.rcParams['font.family'] = self.font_name
         
         # プロットサイズの設定
         plt.figure(figsize=(10, 8))
@@ -175,15 +185,19 @@ class PDFGenerator:
         plt.ylim(2.0, 3.6)
         
         # レイアウトの調整
-        plt.tight_layout()
-        
-        # 画像をBytesIOに保存
-        img_stream = BytesIO()
-        plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=150)
-        plt.close()
-        img_stream.seek(0)
-        
-        return img_stream
+            plt.tight_layout()
+            
+            # 画像をBytesIOに保存
+            img_stream = BytesIO()
+            plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=150)
+            img_stream.seek(0)
+            
+            return img_stream
+        except Exception as e:
+            st.error(f"散布図の生成中にエラーが発生しました: {str(e)}")
+            raise
+        finally:
+            plt.close('all')  # 全てのプロットをクリーンアップ
 
     def _add_numeric_analysis_section(self, elements, dfs, config_manager, section_number, options):
         """数値分析のセクションを追加"""
