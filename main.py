@@ -18,6 +18,8 @@ def main():
         st.session_state.config_manager = ConfigManager()
     if 'visualizer' not in st.session_state:
         st.session_state.visualizer = Visualizer()
+    if 'pdf_generator' not in st.session_state:
+        st.session_state.pdf_generator = PDFGenerator(st.session_state.config_manager)
     if 'current_menu' not in st.session_state:
         st.session_state.current_menu = "1.データアップロード"
 
@@ -505,439 +507,117 @@ def main():
         st.markdown("## 6. PDF出力")
         st.markdown("---")
         
-        # タブの作成
-        tab1, tab2 = st.tabs(["📋 帳票テンプレート管理", "⚙️ フォント設定"])
-
-        # 帳票テンプレート管理タブ
-        with tab1:
-            st.markdown("### 帳票テンプレート管理")
+        st.markdown("### 帳票テンプレート管理")
+        
+        # テンプレート作成フォーム
+        with st.form("template_creation_form"):
+            # 基本情報
+            template_name = st.text_input("テンプレート名", help="例: 基本分析レポート")
+            template_description = st.text_area("説明", help="レポートの概要や用途を記入してください")
             
-            try:
-                # テンプレート作成フォーム
-                with st.form("template_creation_form"):
-                    # 基本情報
-                    template_name = st.text_input("テンプレート名", help="例: 基本分析レポート")
-                    template_description = st.text_area("説明", help="レポートの概要や用途を記入してください")
-                    
-                    # データセット選択
-                    if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
-                        dataset_options = [f"データセット {i+1}" for i in range(len(st.session_state.data_processor.dfs))]
-                        selected_dataset = st.selectbox("分析対象のデータセット", dataset_options)
-                    
-                    # 絞り込み条件
-                    st.subheader("データ絞り込み条件")
-                    filters = {}
-                    
-                    if not hasattr(st.session_state.data_processor, 'dfs') or not st.session_state.data_processor.dfs:
-                        st.warning("データを読み込んでください")
-                    else:
-                        df = st.session_state.data_processor.dfs[0]
-                        attributes = st.session_state.config_manager.config.get('attributes', [])
-                        
-                        if not attributes:
-                            st.info("属性が設定されていません。設定メニューで属性を設定してください。")
-                        else:
-                            st.write("以下の属性で絞り込みができます：")
-                            for attr in attributes:
-                                if attr in df.columns:  # 列が存在することを確認
-                                    unique_values = sorted(df[attr].unique().tolist())
-                                    selected_values = st.multiselect(
-                                        f"{attr}による絞り込み",
-                                        unique_values,
-                                        default=unique_values,
-                                        help=f"{attr}の値で絞り込む場合は選択してください"
-                                    )
-                                    if selected_values and len(selected_values) < len(unique_values):
-                                        filters[attr] = selected_values
-                    
-                    # 出力セクション設定
-                    st.subheader("出力セクション設定")
-                    graph_type = st.selectbox(
-                        "グラフ種類",
-                        ["相関係数ヒートマップ", "回答の分布", "重要度-満足度分析"]
-                    )
-                    
-                    analysis_unit = st.radio(
-                        "分析単位",
-                        ["質問ごと", "質問グループごと"]
-                    )
-                    
-                    # 保存ボタン
-                    submitted = st.form_submit_button("テンプレートを保存")
-                    
-                    if submitted:
-                        if template_name:
-                            # テンプレートの保存
-                            new_template = {
-                                "title": template_name,
-                                "description": template_description,
-                                "dataset": selected_dataset if 'selected_dataset' in locals() else "データセット 1",
-                                "filters": filters,
-                                "sections": [
-                                    {
-                                        "type": graph_type.replace("ヒートマップ", "").replace("分析", ""),
-                                        "title": graph_type,
-                                        "description": "",
-                                        "options": {
-                                            "analysis_unit": analysis_unit
-                                        }
-                                    }
-                                ]
+            # データセット選択
+            if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                dataset_options = [f"データセット {i+1}" for i in range(len(st.session_state.data_processor.dfs))]
+                selected_dataset = st.selectbox("分析対象のデータセット", dataset_options)
+            
+            # 絞り込み条件
+            st.subheader("データ絞り込み条件")
+            filters = {}
+            
+            if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
+                df = st.session_state.data_processor.dfs[0]
+                attributes = st.session_state.config_manager.config.get('attributes', [])
+                
+                if attributes:
+                    for attr in attributes:
+                        if attr in df.columns:
+                            unique_values = sorted(df[attr].unique().tolist())
+                            selected_values = st.multiselect(
+                                f"{attr}による絞り込み",
+                                unique_values,
+                                default=unique_values,
+                                help=f"{attr}の値で絞り込む場合は選択してください"
+                            )
+                            if selected_values and len(selected_values) < len(unique_values):
+                                filters[attr] = selected_values
+            
+            # 出力セクション設定
+            st.subheader("出力セクション設定")
+            graph_type = st.selectbox(
+                "グラフ種類",
+                ["相関係数ヒートマップ", "回答の分布", "重要度-満足度分析"]
+            )
+            
+            analysis_unit = st.radio(
+                "分析単位",
+                ["質問ごと", "質問グループごと"]
+            )
+            
+            # 保存ボタン
+            submitted = st.form_submit_button("テンプレートを保存")
+            
+            if submitted:
+                if template_name:
+                    # テンプレートの保存
+                    new_template = {
+                        "title": template_name,
+                        "description": template_description,
+                        "dataset": selected_dataset if 'selected_dataset' in locals() else "データセット 1",
+                        "filters": filters,
+                        "sections": [
+                            {
+                                "type": graph_type.replace("ヒートマップ", "").replace("分析", ""),
+                                "title": graph_type,
+                                "description": "",
+                                "options": {
+                                    "analysis_unit": analysis_unit
+                                }
                             }
-                            
-                            # 設定の保存
-                            templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
-                            templates[template_name] = new_template
-                            st.session_state.config_manager.config['pdf_settings']['templates'] = templates
-                            st.session_state.config_manager.save_config()
-                            st.success("テンプレートを保存しました")
-                            st.rerun()
-                        else:
-                            st.error("テンプレート名を入力してください")
-
-                # 登録済みテンプレート
-                st.markdown("### 登録済みテンプレート")
-                templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
-                
-                if templates:
-                    st.write("登録済みテンプレート:")
-                    for template_name, template_data in templates.items():
-                        with st.expander(f"📄 {template_name}: {template_data['title']}", expanded=False):
-                            st.write(f"説明: {template_data.get('description', '')}")
-                            
-                            # フィルター設定の表示
-                            if filters := template_data.get('filters', {}):
-                                st.write("データ絞り込み条件:")
-                                for attr, values in filters.items():
-                                    st.write(f"- {attr}: {', '.join(values)}")
-                            
-                            # セクション一覧
-                            st.write("出力内容:")
-                            for section in template_data.get('sections', []):
-                                st.write(f"- {section['title']}")
-                                if description := section.get('description'):
-                                    st.caption(description)
-                            
-                            # PDFプレビューボタン
-                            col1, col2 = st.columns([1, 4])
-                            with col1:
-                                if st.button("PDF出力", key=f"pdf_{template_name}"):
-                                    if not hasattr(st.session_state.data_processor, 'dfs') or not st.session_state.data_processor.dfs:
-                                        st.error("データが読み込まれていません。先にデータをアップロードしてください。")
-                                    else:
-                                        st.session_state.pdf_generator = PDFGenerator(st.session_state.config_manager)
-                                        try:
-                                            output_path = st.session_state.pdf_generator.generate_pdf(
-                                                st.session_state.data_processor.dfs,
-                                                st.session_state.config_manager,
-                                                st.session_state.visualizer,
-                                                template_name
-                                            )
-                                            if output_path and os.path.exists(output_path):
-                                                with open(output_path, "rb") as pdf_file:
-                                                    st.download_button(
-                                                        label="PDFをダウンロード",
-                                                        data=pdf_file,
-                                                        file_name=f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                                        mime="application/pdf"
-                                                    )
-                                            else:
-                                                st.error("PDFの生成に失敗しました")
-                                        except Exception as e:
-                                            st.error(f"PDF生成中にエラーが発生しました: {str(e)}")
-            except Exception as e:
-                st.error(f"テンプレート一覧の表示中にエラーが発生しました: {str(e)}")
-                
-                if templates:
-                    st.write("登録済みテンプレート:")
-                for template_name, template_data in templates.items():
-                    with st.expander(f"📄 {template_name}: {template_data['title']}", expanded=False):
-                        st.write(f"説明: {template_data.get('description', '')}")
-                        
-                        # フィルター設定の表示
-                        if filters := template_data.get('filters', {}):
-                            st.write("データ絞り込み条件:")
-                            for attr, values in filters.items():
-                                st.write(f"- {attr}: {', '.join(values)}")
-                        
-                        # セクション一覧
-                        st.write("出力内容:")
-                        for section in template_data.get('sections', []):
-                            st.write(f"- {section['title']}")
-                            if description := section.get('description'):
-                                st.caption(description)
-                        
-                        # PDFプレビューボタン
-                        col1, col2 = st.columns([1, 4])
-                        with col1:
-                            if st.button("PDF出力", key=f"pdf_{template_name}"):
-                                st.session_state.pdf_generator = PDFGenerator(st.session_state.config_manager)
-                                try:
-                                    output_path = st.session_state.pdf_generator.generate_pdf(
-                                        st.session_state.data_processor.dfs,
-                                        st.session_state.config_manager,
-                                        st.session_state.visualizer,
-                                        template_name
-                                    )
-                                    if output_path and os.path.exists(output_path):
-                                        with open(output_path, "rb") as pdf_file:
-                                            st.download_button(
-                                                label="PDFをダウンロード",
-                                                data=pdf_file,
-                                                file_name=f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                                mime="application/pdf"
-                                            )
-                                    else:
-                                        st.error("PDFの生成に失敗しました")
-                                except Exception as e:
-                                    st.error(f"PDF生成中にエラーが発生しました: {str(e)}")
-            
-            # 新規テンプレート作成
-            st.markdown("### 新規テンプレート作成")
-            with st.form("new_template_form"):
-                # 基本情報
-                template_name = st.text_input("テンプレート名", placeholder="例: 帳票1, 帳票2")
-                title = st.text_input("タイトル", placeholder="例: 基本分析レポート")
-                description = st.text_area("説明文", placeholder="レポートの概要を入力してください")
-                
-                # データ絞り込み条件
-                st.write("データ絞り込み条件")
-                filters = {}
-                if hasattr(st.session_state.data_processor, 'dfs') and st.session_state.data_processor.dfs:
-                    df = st.session_state.data_processor.dfs[0]
-                    attributes = st.session_state.config_manager.config.get('attributes', [])
-                    
-                    # 存在する属性のみを処理
-                    valid_attributes = [attr for attr in attributes if attr in df.columns]
-                    
-                    if valid_attributes:
-                        for attr in valid_attributes:
-                            try:
-                                unique_values = sorted(df[attr].dropna().unique().tolist())
-                                selected_values = st.multiselect(
-                                    f"{attr}で絞り込み",
-                                    ["全て"] + unique_values,
-                                    default=["全て"]
-                                )
-                                if selected_values and selected_values != ["全て"]:
-                                    filters[attr] = selected_values
-                            except Exception as e:
-                                st.error(f"属性 '{attr}' の処理中にエラーが発生しました: {str(e)}")
-                    else:
-                        st.info("利用可能な属性がありません。先に属性設定を行ってください。")
-                
-                # セクション設定
-                st.write("出力するセクション")
-                sections = []
-                
-                # 数値表セクション
-                if st.checkbox("数値表を含める", value=True):
-                    numeric_section = {
-                        "type": "数値表",
-                        "title": "属性別平均値一覧",
-                        "description": st.text_input("数値表の説明", placeholder="数値表の説明を入力してください"),
-                        "options": {
-                            "show_group_analysis": st.checkbox("グループ分析を表示", value=True),
-                            "show_question_analysis": st.checkbox("質問別分析を表示", value=True)
-                        }
+                        ]
                     }
-                    sections.append(numeric_section)
-                
-                # 相関分析セクション
-                if st.checkbox("相関分析を含める"):
-                    correlation_section = {
-                        "type": "相関分析",
-                        "title": "相関分析",
-                        "description": st.text_input("相関分析の説明", placeholder="相関分析の説明を入力してください"),
-                        "options": {
-                            "mode": st.selectbox(
-                                "分析モード",
-                                ["質問間の相関", "グループ間の相関"]
-                            ),
-                            "group": "すべての質問"
-                        }
-                    }
-                    sections.append(correlation_section)
-                
-                # 重要度-満足度分析セクション
-                if st.checkbox("重要度-満足度分析を含める"):
-                    is_section = {
-                        "type": "重要度満足度",
-                        "title": "重要度-満足度分析",
-                        "description": st.text_input("重要度-満足度分析の説明", placeholder="重要度-満足度分析の説明を入力してください"),
-                        "options": {}
-                    }
-                    sections.append(is_section)
-                
-                # 保存ボタン
-                if st.form_submit_button("テンプレートを保存"):
-                    if template_name and title:
-                        if 'pdf_settings' not in st.session_state.config_manager.config:
-                            st.session_state.config_manager.config['pdf_settings'] = {'templates': {}}
-                        elif 'templates' not in st.session_state.config_manager.config['pdf_settings']:
-                            st.session_state.config_manager.config['pdf_settings']['templates'] = {}
-                        
-                        st.session_state.config_manager.config['pdf_settings']['templates'][template_name] = {
-                            "title": title,
-                            "description": description,
-                            "filters": filters,
-                            "sections": sections
-                        }
-                        st.session_state.config_manager.save_config()
-                        st.success("テンプレートを保存しました")
-                        st.rerun()
-                    else:
-                        st.error("テンプレート名とタイトルは必須です")
-        
-        # フォント設定タブ
-        with tab2:
-            st.markdown("### 日本語フォントの設定")
-            
-            # フォントファイルのアップロード
-            font_file = st.file_uploader(
-                "日本語フォントファイル (.ttc/.ttf) をアップロード:",
-                type=['ttc', 'ttf'],
-                help="NotoSansCJK、IPAフォント、MSゴシック等の日本語フォントファイルをアップロードしてください。",
-                key="font_uploader"
-            )
-            
-            if font_file is not None:
-                try:
-                    # fontsディレクトリの作成
-                    if not os.path.exists('fonts'):
-                        os.makedirs('fonts')
                     
-                    # フォントファイルの保存
-                    font_filename = font_file.name
-                    font_path = os.path.join('fonts', font_filename)
-                    
-                    # 既存のフォントファイルを削除
-                    if os.path.exists(font_path):
-                        os.remove(font_path)
-                    
-                    # 新しいフォントファイルを保存
-                    with open(font_path, 'wb') as f:
-                        f.write(font_file.getvalue())
-                    
-                    # 設定の更新
-                    st.session_state.config_manager.config['pdf_font'] = {
-                        'filename': font_filename,
-                        'path': font_path
-                    }
+                    # 設定の保存
+                    templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
+                    templates[template_name] = new_template
+                    st.session_state.config_manager.config['pdf_settings']['templates'] = templates
                     st.session_state.config_manager.save_config()
-                    st.success(f"フォントファイル '{font_filename}' を保存しました")
-                except Exception as e:
-                    st.error(f"フォントファイルの保存中にエラーが発生しました: {str(e)}")
-                    if os.path.exists(font_path):
-                        os.remove(font_path)
-            
-            # 現在のフォント状態を確認
-            current_font = st.session_state.config_manager.config.get('pdf_font', {})
-            if current_font and os.path.exists(current_font.get('path', '')):
-                st.info(f"日本語フォント '{current_font['filename']}' が利用可能です")
-            else:
-                st.warning("日本語フォントがアップロードされていません。PDFの日本語が正しく表示されない可能性があります。")
-        
-        # PDF設定の編集
-        with st.expander("PDF出力設定", expanded=True):
-            st.write("出力内容の選択")
-            
-            # 新規設定の作成
-            settings_name = st.text_input("設定名", value="新規設定")
-            
-            # セクションの選択
-            st.write("### セクションの選択")
-            
-            # 数値表の設定
-            if st.checkbox("数値表を含める", value=True):
-                st.write("数値表の設定：")
-                col1, col2 = st.columns(2)
-                with col1:
-                    show_group = st.checkbox("グループ分析を表示", value=True)
-                with col2:
-                    show_question = st.checkbox("質問別分析を表示", value=True)
-            
-            # 相関分析の設定
-            if st.checkbox("相関分析を含める", value=True):
-                st.write("相関分析の設定：")
-                correlation_mode = st.selectbox(
-                    "分析モード",
-                    ["質問間の相関", "グループ間の相関"],
-                    index=0
-                )
-                if correlation_mode == "グループ間の相関":
-                    correlation_group = st.selectbox(
-                        "対象グループ",
-                        ["すべての質問"] + list(st.session_state.config_manager.config.get('question_groups', {}).keys())
-                    )
+                    st.success("テンプレートを保存しました")
+                    st.rerun()
                 else:
-                    correlation_group = "すべての質問"
-            
-            # 重要度-満足度分析の設定
-            include_is = st.checkbox("重要度-満足度分析を含める", value=True)
-            
-            # 設定の保存ボタン
-            if st.button("設定を保存"):
-                sections = []
-                
-                # 数値表のセクション
-                if st.session_state.get('show_numeric', True):
-                    sections.append({
-                        "type": "数値表",
-                        "title": "属性別平均値一覧",
-                        "options": {
-                            "show_group_analysis": show_group,
-                            "show_question_analysis": show_question
-                        }
-                    })
-                
-                # 相関分析のセクション
-                if st.session_state.get('show_correlation', True):
-                    sections.append({
-                        "type": "相関分析",
-                        "title": "質問間の相関分析",
-                        "options": {
-                            "mode": correlation_mode,
-                            "group": correlation_group
-                        }
-                    })
-                
-                # 重要度-満足度分析のセクション
-                if include_is:
-                    sections.append({
-                        "type": "重要度満足度",
-                        "title": "重要度-満足度分析",
-                        "options": {}
-                    })
-                
-                # 設定の保存
-                st.session_state.config_manager.config['pdf_settings'][settings_name] = {
-                    "title": settings_name,
-                    "sections": sections
-                }
-                st.session_state.config_manager.save_config()
-                st.success(f"設定 '{settings_name}' を保存しました")
+                    st.error("テンプレート名を入力してください")
+
+        # 登録済みテンプレート一覧
+        st.markdown("### 登録済みテンプレート")
+        templates = st.session_state.config_manager.config.get('pdf_settings', {}).get('templates', {})
         
-        # 保存済み設定の表示と選択
-        saved_settings = st.session_state.config_manager.config.get('pdf_settings', {})
-        if saved_settings:
-            st.write("### 保存済み設定")
-            selected_setting = st.selectbox(
-                "使用する設定を選択",
-                options=list(saved_settings.keys()),
-                format_func=lambda x: f"{x} ({len(saved_settings[x]['sections'])}セクション)"
-            )
+        if templates:
+            st.write("以下のテンプレートから選択してPDF出力できます：")
             
-            # PDF生成ボタン
-            if st.button("PDF出力"):
-                pdf_generator = PDFGenerator(st.session_state.config_manager)
-                pdf_path = pdf_generator.generate_pdf(
-                    st.session_state.data_processor.dfs,
-                    st.session_state.config_manager,
-                    st.session_state.visualizer,
-                    settings_name=selected_setting
-                )
-                st.success(f"PDFを生成しました: {pdf_path}")
+            for template_name, template_data in templates.items():
+                col1, col2 = st.columns([0.7, 0.3])
+                with col1:
+                    st.markdown(f"**{template_name}**")
+                    if template_data.get('description'):
+                        st.caption(template_data['description'])
+                with col2:
+                    if st.button("PDF出力", key=f"generate_{template_name}"):
+                        with st.spinner("PDFを生成中..."):
+                            pdf_path = st.session_state.pdf_generator.generate_pdf(
+                                st.session_state.data_processor.dfs,
+                                st.session_state.config_manager,
+                                st.session_state.visualizer,
+                                template_name
+                            )
+                            if pdf_path:
+                                with open(pdf_path, "rb") as pdf_file:
+                                    st.download_button(
+                                        label="PDFをダウンロード",
+                                        data=pdf_file.read(),
+                                        file_name=f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                        mime="application/pdf"
+                                    )
+        else:
+            st.info("登録済みのテンプレートがありません。")
 
 if __name__ == "__main__":
     main()
