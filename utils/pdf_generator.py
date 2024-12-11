@@ -99,97 +99,83 @@ class PDFGenerator:
 
     def _create_heatmap(self, corr_data, column_names):
         """相関係数ヒートマップの作成"""
-        import plotly.graph_objects as go
-        import os
-        from playwright.sync_api import sync_playwright
+        import matplotlib.pyplot as plt
+        import seaborn as sns
         from io import BytesIO
         
         # 表示用の列名を準備
         display_cols = [column_names.get(col, col) for col in corr_data.columns]
         
-        # ヒートマップの作成
-        fig = go.Figure(data=go.Heatmap(
-            z=corr_data.values,
-            x=display_cols,
-            y=display_cols,
-            text=corr_data.values.round(2),
-            texttemplate='%{text:.2f}',
-            textfont={"size": 10},
-            colorscale='RdBu_r',
-            zmid=0,
-            colorbar=dict(title='相関係数')
-        ))
+        # プロットサイズの設定
+        plt.figure(figsize=(12, 10))
         
-        # レイアウトの設定
-        fig.update_layout(
-            title='相関分析',
-            font=dict(family=self.font_name),
-            width=1000,
-            height=800,
-            xaxis=dict(tickangle=45),
+        # ヒートマップの作成
+        sns.heatmap(
+            corr_data,
+            annot=True,
+            fmt='.2f',
+            cmap='RdBu_r',
+            center=0,
+            xticklabels=display_cols,
+            yticklabels=display_cols
         )
         
-        # 画像として保存
-        img_bytes = fig.write_image("temp/heatmap.png")
+        # タイトルと軸ラベルの設定
+        plt.title('相関分析', fontsize=16, pad=20)
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
         
-        # 画像をBytesIOに読み込む
-        with open("temp/heatmap.png", "rb") as f:
-            img_bytes = f.read()
-        img_stream = BytesIO(img_bytes)
+        # 画像をBytesIOに保存
+        img_stream = BytesIO()
+        plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=150)
+        plt.close()
         img_stream.seek(0)
-        
-        # 一時ファイルを削除
-        os.remove("temp/heatmap.png")
         
         return img_stream
 
     def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
         """散布図の作成"""
-        import plotly.graph_objects as go
-        import os
-        from playwright.sync_api import sync_playwright
+        import matplotlib.pyplot as plt
         from io import BytesIO
         
+        # プロットサイズの設定
+        plt.figure(figsize=(10, 8))
+        
         # 散布図の作成
-        fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=data_points['importance'],
-            y=data_points['satisfaction'],
-            mode='markers+text',
-            text=data_points['name'],
-            textposition="top center",
-            marker=dict(size=10),
-        ))
-        
-        # レイアウトの設定
-        fig.update_layout(
-            title=title,
-            xaxis_title='重要度',
-            yaxis_title='満足度',
-            xaxis=dict(range=[2.0, 3.2]),
-            yaxis=dict(range=[2.0, 3.6]),
-            showlegend=False,
-            font=dict(family=self.font_name),
-            width=800,
-            height=600
+        plt.scatter(
+            data_points['importance'],
+            data_points['satisfaction'],
+            s=100
         )
         
-        # グリッド線の追加
-        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
-        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+        # データポイントにラベルを追加
+        for idx, row in data_points.iterrows():
+            plt.annotate(
+                row['name'],
+                (row['importance'], row['satisfaction']),
+                xytext=(0, 10),
+                textcoords='offset points',
+                ha='center',
+                va='bottom',
+                fontsize=9
+            )
         
-        # 画像として保存
-        img_bytes = fig.write_image("temp/scatter.png")
+        # グラフの設定
+        plt.title(title, fontsize=16, pad=20)
+        plt.xlabel('重要度', fontsize=12)
+        plt.ylabel('満足度', fontsize=12)
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.xlim(2.0, 3.2)
+        plt.ylim(2.0, 3.6)
         
-        # 画像をBytesIOに読み込む
-        with open("temp/scatter.png", "rb") as f:
-            img_bytes = f.read()
-        img_stream = BytesIO(img_bytes)
+        # レイアウトの調整
+        plt.tight_layout()
+        
+        # 画像をBytesIOに保存
+        img_stream = BytesIO()
+        plt.savefig(img_stream, format='png', bbox_inches='tight', dpi=150)
+        plt.close()
         img_stream.seek(0)
-        
-        # 一時ファイルを削除
-        os.remove("temp/scatter.png")
         
         return img_stream
 
