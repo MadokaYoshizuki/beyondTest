@@ -502,14 +502,48 @@ def main():
     elif st.session_state.current_menu == "6.PDF出力":
         st.markdown("## 6. PDF出力")
         st.markdown("---")
-        if st.button("PDF出力"):
-            pdf_generator = PDFGenerator()
-            pdf_path = pdf_generator.generate_pdf(
-                st.session_state.data_processor.dfs,
-                st.session_state.config_manager,
-                st.session_state.visualizer
-            )
-            st.success(f"PDFを生成しました: {pdf_path}")
+        
+        output_type = st.radio(
+            "PDF出力タイプを選択:",
+            ["現在の画面をPDF出力", "レポート形式でPDF出力"]
+        )
+        
+        if output_type == "現在の画面をPDF出力":
+            if st.button("現在の画面をPDF出力"):
+                # 現在の画面のHTMLを取得
+                html_content = """
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>意識調査データ分析レポート</title>
+                    <style>
+                        body { font-family: sans-serif; }
+                        .stMarkdown { margin: 1em 0; }
+                        table { border-collapse: collapse; width: 100%; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f5f5f5; }
+                    </style>
+                </head>
+                <body>
+                    <div class="stApp">
+                """ + st.markdown("", unsafe_allow_html=True).__dict__["_parent_frame"].markdown + """
+                    </div>
+                </body>
+                </html>
+                """
+                
+                pdf_generator = PDFGenerator()
+                pdf_generator.generate_from_html(html_content)
+                
+        else:
+            if st.button("レポート形式でPDF出力"):
+                pdf_generator = PDFGenerator()
+                pdf_path = pdf_generator.generate_pdf(
+                    st.session_state.data_processor.dfs,
+                    st.session_state.config_manager,
+                    st.session_state.visualizer
+                )
+                st.success(f"PDFを生成しました: {pdf_path}")
 
 if __name__ == "__main__":
     main()
