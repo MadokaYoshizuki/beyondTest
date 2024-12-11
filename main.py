@@ -524,58 +524,67 @@ def main():
         with st.expander("2. 数値分析結果", expanded=True):
             st.markdown("各設問項目の数値データについて、基本統計量を算出し分析を行いました。")
             for i, df in enumerate(st.session_state.data_processor.dfs):
-                st.subheader(f"データセット {i+1}")
-                numeric_df = df.select_dtypes(include=['number'])
-                if not numeric_df.empty:
-                    stats = numeric_df.describe()
-                    st.dataframe(stats.style.format("{:.2f}"))
+                with st.container():
+                    st.subheader(f"データセット {i+1}")
+                    numeric_df = df.select_dtypes(include=['number'])
+                    if not numeric_df.empty:
+                        stats = numeric_df.describe()
+                        st.dataframe(stats.style.format("{:.2f}"))
+                    st.markdown("---")  # セパレータを追加
         
         # 相関分析
         with st.expander("3. 相関分析", expanded=True):
             st.markdown("各設問項目間の相関関係を分析しました。")
             for i, df in enumerate(st.session_state.data_processor.dfs):
-                st.subheader(f"データセット {i+1}")
-                numeric_columns = df.select_dtypes(include=['number']).columns
-                if not numeric_columns.empty:
-                    corr_data = df[numeric_columns].corr()
-                    
-                    # Plotlyでヒートマップを作成
-                    import plotly.graph_objects as go
-                    
-                    column_names = st.session_state.config_manager.config.get('column_names', {})
-                    display_cols = [column_names.get(col, col) for col in corr_data.columns]
-                    
-                    fig = go.Figure(data=go.Heatmap(
-                        z=corr_data.values,
-                        x=display_cols,
-                        y=display_cols,
-                        text=corr_data.values.round(2),
-                        texttemplate='%{text:.2f}',
-                        textfont={"size": 10},
-                        colorscale='RdBu_r',
-                        zmid=0,
-                        colorbar=dict(title='相関係数')
-                    ))
-                    
-                    fig.update_layout(
-                        title='相関分析',
-                        width=800,
-                        height=800,
-                        xaxis=dict(tickangle=45),
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
+                with st.container():
+                    st.subheader(f"データセット {i+1}")
+                    numeric_columns = df.select_dtypes(include=['number']).columns
+                    if not numeric_columns.empty:
+                        corr_data = df[numeric_columns].corr()
+                        
+                        # Plotlyでヒートマップを作成
+                        import plotly.graph_objects as go
+                        
+                        column_names = st.session_state.config_manager.config.get('column_names', {})
+                        display_cols = [column_names.get(col, col) for col in corr_data.columns]
+                        
+                        fig = go.Figure(data=go.Heatmap(
+                            z=corr_data.values,
+                            x=display_cols,
+                            y=display_cols,
+                            text=corr_data.values.round(2),
+                            texttemplate='%{text:.2f}',
+                            textfont={"size": 10},
+                            colorscale='RdBu_r',
+                            zmid=0,
+                            colorbar=dict(title='相関係数')
+                        ))
+                        
+                        fig.update_layout(
+                            title='相関分析',
+                            width=800,
+                            height=800,
+                            xaxis=dict(tickangle=45),
+                        )
+                        
+                        # コンテナ内にチャートを配置
+                        chart_container = st.container()
+                        with chart_container:
+                            st.plotly_chart(fig, use_container_width=True)
+                        
+                    st.markdown("---")  # セパレータを追加
         
         # 重要度-満足度分析
         with st.expander("4. 重要度-満足度分析", expanded=True):
             st.markdown("各項目の重要度と満足度の関係を分析しました。")
             
             for i, df in enumerate(st.session_state.data_processor.dfs):
-                st.subheader(f"データセット {i+1}")
-                
-                # データポイントの準備
-                pairs = st.session_state.config_manager.config.get('importance_satisfaction_pairs', {})
-                data_points = []
+                with st.container():
+                    st.subheader(f"データセット {i+1}")
+                    
+                    # データポイントの準備
+                    pairs = st.session_state.config_manager.config.get('importance_satisfaction_pairs', {})
+                    data_points = []
                 
                 for pair_name, pair_data in pairs.items():
                     importance_col = pair_data['importance']
