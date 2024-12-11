@@ -11,7 +11,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-import os
 import streamlit as st
 from datetime import datetime
 import matplotlib
@@ -85,14 +84,19 @@ class PDFGenerator:
                     self.styles[style_name].fontSize = 12
                     self.styles[style_name].leading = 16
 
-    def _create_title_page(self):
+    def _create_title_page(self, title, description):
         """タイトルページの作成"""
         elements = []
         styles = self.styles
 
         # タイトル
-        elements.append(Paragraph("意識調査 分析レポート", styles['Title']))
-        elements.append(Spacer(1, 2*cm))
+        elements.append(Paragraph(title, styles['Title']))
+        elements.append(Spacer(1, 1*cm))
+
+        # 説明文
+        if description:
+            elements.append(Paragraph(description, styles['JapaneseParagraph']))
+            elements.append(Spacer(1, 1*cm))
 
         # 日付
         date = datetime.now().strftime("%Y年%m月%d日")
@@ -101,33 +105,28 @@ class PDFGenerator:
 
         return elements
 
-    def _create_toc(self):
+    def _create_toc(self, sections):
         """目次の作成"""
         elements = []
         styles = self.styles
 
         elements.append(Paragraph("目次", styles['Heading1']))
         elements.append(Spacer(1, 1*cm))
-        elements.append(Paragraph("1. 実施概要", styles['JapaneseParagraph']))
-        elements.append(Paragraph("2. 数値分析結果", styles['JapaneseParagraph']))
-        elements.append(Paragraph("3. 相関分析", styles['JapaneseParagraph']))
-        elements.append(Paragraph("4. 重要度満足度分析", styles['JapaneseParagraph']))
-        elements.append(PageBreak())
 
+        for i, section in enumerate(sections, 1):
+            elements.append(Paragraph(
+                f"{i}. {section['title']}", 
+                styles['JapaneseParagraph']
+            ))
+
+        elements.append(PageBreak())
         return elements
 
     def _create_heatmap(self, corr_data, column_names):
         """相関係数ヒートマップの作成"""
         try:
-            import matplotlib.pyplot as plt
-            import seaborn as sns
-            from io import BytesIO
-            
             # 既存のプロットをクリア
             plt.clf()
-            
-            # フォント設定の確認とログ出力
-            st.write(f"現在のフォント設定: {plt.rcParams['font.family']}")
             
             # プロットサイズと解像度の設定
             plt.figure(figsize=(12, 10), dpi=300)
@@ -155,6 +154,7 @@ class PDFGenerator:
             plt.tight_layout(pad=1.5)
             
             # プロットをバイトストリームとして保存（高解像度）
+            from io import BytesIO
             img_stream = BytesIO()
             plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight', 
                        pad_inches=0.5, facecolor='white', edgecolor='none')
@@ -164,258 +164,237 @@ class PDFGenerator:
             return img_stream
         except Exception as e:
             st.error(f"ヒートマップの生成中にエラーが発生しました: {str(e)}")
-            st.error(f"エラーの種類: {str(e.__class__.__name__)}")
             return None
 
     def _create_scatter_plot(self, data_points, title="重要度-満足度分析"):
         """散布図の作成"""
-        from io import BytesIO
-        
-        # Matplotlibのフォント設定
-        plt.rcParams['font.family'] = self.font_name
-        plt.rcParams['font.sans-serif'] = [self.font_name]
-        plt.rcParams['axes.unicode_minus'] = False
-        plt.rcParams['font.size'] = 12
-        
-        # フォントの確認
-        st.write(f"使用中のフォント: {self.font_name}")
-        
-        # プロットサイズと解像度の設定
-        plt.figure(figsize=(12, 10), dpi=300)
-        
-        # 散布図のプロット
-        plt.scatter(data_points['importance'], data_points['satisfaction'], s=100)
-        
-        # ラベルの追加（フォントサイズを調整）
-        for idx, point in data_points.iterrows():
-            plt.annotate(point['name'], 
-                        (point['importance'], point['satisfaction']),
-                        xytext=(5, 5), 
-                        textcoords='offset points',
-                        fontsize=10)
-        
-        # 軸の設定
-        plt.xlim(2.0, 3.2)
-        plt.ylim(2.0, 3.6)
-        plt.xlabel('重要度', fontsize=12)
-        plt.ylabel('満足度', fontsize=12)
-        plt.title(title, fontsize=14, pad=20)
-        plt.grid(True, linestyle='--', alpha=0.7)
-        
-        # レイアウトの調整
-        plt.tight_layout(pad=1.5)
-        
-        # プロットをバイトストリームとして保存（高解像度）
-        img_stream = BytesIO()
-        plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight',
-                   pad_inches=0.5, facecolor='white', edgecolor='none')
-        img_stream.seek(0)
-        plt.close()
-        
-        return img_stream
+        try:
+            from io import BytesIO
+            
+            # プロットサイズと解像度の設定
+            plt.figure(figsize=(12, 10), dpi=300)
+            
+            # 散布図のプロット
+            plt.scatter(data_points['importance'], data_points['satisfaction'], s=100)
+            
+            # ラベルの追加
+            for idx, point in data_points.iterrows():
+                plt.annotate(point['name'], 
+                            (point['importance'], point['satisfaction']),
+                            xytext=(5, 5), 
+                            textcoords='offset points',
+                            fontsize=10)
+            
+            # 軸の設定
+            plt.xlim(2.0, 3.2)
+            plt.ylim(2.0, 3.6)
+            plt.xlabel('重要度', fontsize=12)
+            plt.ylabel('満足度', fontsize=12)
+            plt.title(title, fontsize=14, pad=20)
+            plt.grid(True, linestyle='--', alpha=0.7)
+            
+            # レイアウトの調整
+            plt.tight_layout(pad=1.5)
+            
+            # プロットをバイトストリームとして保存
+            img_stream = BytesIO()
+            plt.savefig(img_stream, format='png', dpi=300, bbox_inches='tight',
+                       pad_inches=0.5, facecolor='white', edgecolor='none')
+            img_stream.seek(0)
+            plt.close()
+            
+            return img_stream
+        except Exception as e:
+            st.error(f"散布図の生成中にエラーが発生しました: {str(e)}")
+            return None
 
-    def _add_numeric_analysis_section(self, elements, dfs, config_manager, section_number, options):
+    def _add_numeric_analysis_section(self, elements, dfs, config_manager, section_number, section):
         """数値分析のセクションを追加"""
-        styles = self.styles
-        column_names = config_manager.config.get('column_names', {})
-        
-        elements.append(Paragraph(f"{section_number}. 数値分析結果", styles['Heading1']))
-        elements.append(Paragraph(
-            "各設問項目の数値データについて、基本統計量を算出し分析を行いました。",
-            styles['JapaneseParagraph']
-        ))
-        elements.append(Spacer(1, 0.5*cm))
-
-        for i, df in enumerate(dfs):
-            dataset_elements = []
-            dataset_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
+        try:
+            styles = self.styles
+            column_names = config_manager.config.get('column_names', {})
             
-            # 基本統計量
-            numeric_df = df.select_dtypes(include=['number'])
-            if not numeric_df.empty:
-                stats = numeric_df.describe()
-                display_cols = [column_names.get(col, col) for col in stats.columns]
-                table_data = [["統計量"] + display_cols]
-                for idx in stats.index:
-                    row = [idx] + ['{:g}'.format(x) if isinstance(x, float) else str(x) for x in stats.loc[idx]]
-                    table_data.append(row)
+            elements.append(Paragraph(f"{section_number}. {section['title']}", styles['Heading1']))
+            if section.get('description'):
+                elements.append(Paragraph(section['description'], styles['JapaneseParagraph']))
+            elements.append(Spacer(1, 0.5*cm))
+
+            for i, df in enumerate(dfs):
+                section_elements = []
+                section_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
                 
-                table = Table(table_data)
-                table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ]))
-                dataset_elements.append(table)
-                dataset_elements.append(Spacer(1, 0.5*cm))
-            
-            elements.append(KeepTogether(dataset_elements))
+                # 基本統計量
+                numeric_df = df.select_dtypes(include=['number'])
+                if not numeric_df.empty:
+                    stats = numeric_df.describe()
+                    display_cols = [column_names.get(col, col) for col in stats.columns]
+                    table_data = [["統計量"] + display_cols]
+                    for idx in stats.index:
+                        row = [idx] + ['{:g}'.format(x) if isinstance(x, float) else str(x) for x in stats.loc[idx]]
+                        table_data.append(row)
+                    
+                    table = Table(table_data)
+                    table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, -1), self.font_name),
+                        ('FONTSIZE', (0, 0), (-1, 0), 10),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ]))
+                    section_elements.append(table)
+                    section_elements.append(Spacer(1, 0.5*cm))
+                
+                elements.append(KeepTogether(section_elements))
+        except Exception as e:
+            st.error(f"数値分析セクションの生成中にエラーが発生しました: {str(e)}")
 
-    def _add_correlation_analysis_section(self, elements, dfs, config_manager, section_number, options):
+    def _add_correlation_analysis_section(self, elements, dfs, config_manager, section_number, section):
         """相関分析のセクションを追加"""
-        styles = self.styles
-        column_names = config_manager.config.get('column_names', {})
-        
-        elements.append(Paragraph(f"{section_number}. 相関分析", styles['Heading1']))
-        elements.append(Paragraph(
-            "各設問項目間の相関関係を分析しました。",
-            styles['JapaneseParagraph']
-        ))
-        elements.append(Spacer(1, 0.5*cm))
-
-        for i, df in enumerate(dfs):
-            correlation_elements = []
-            correlation_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
+        try:
+            styles = self.styles
+            column_names = config_manager.config.get('column_names', {})
             
-            numeric_columns = df.select_dtypes(include=['number']).columns
-            if not numeric_columns.empty:
-                corr_data = df[numeric_columns].corr()
-                
-                # ヒートマップの生成
-                img_stream = self._create_heatmap(corr_data, column_names)
-                try:
-                    correlation_elements.append(Image(img_stream, width=6*inch, height=6*inch))
-                except Exception as e:
-                    st.error(f"画像の追加中にエラーが発生しました: {str(e)}")
-                
-                # 相関係数の表
-                display_cols = [column_names.get(col, col) for col in corr_data.columns]
-                correlation_elements.append(Paragraph("相関係数", styles['Heading3']))
-                table_data = [[""] + display_cols]
-                for idx, display_idx in zip(corr_data.index, display_cols):
-                    row = [display_idx] + [f"{x:.2f}" for x in corr_data.loc[idx]]
-                    table_data.append(row)
-                
-                table = Table(table_data)
-                table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ]))
-                correlation_elements.append(table)
-                correlation_elements.append(Spacer(1, 0.5*cm))
-            
-            elements.append(KeepTogether(correlation_elements))
+            elements.append(Paragraph(f"{section_number}. {section['title']}", styles['Heading1']))
+            if section.get('description'):
+                elements.append(Paragraph(section['description'], styles['JapaneseParagraph']))
+            elements.append(Spacer(1, 0.5*cm))
 
-    def _add_importance_satisfaction_section(self, elements, dfs, config_manager, section_number):
+            for i, df in enumerate(dfs):
+                correlation_elements = []
+                correlation_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
+                
+                numeric_columns = df.select_dtypes(include=['number']).columns
+                if not numeric_columns.empty:
+                    corr_data = df[numeric_columns].corr()
+                    
+                    # ヒートマップの生成
+                    img_stream = self._create_heatmap(corr_data, column_names)
+                    if img_stream:
+                        correlation_elements.append(Image(img_stream, width=6*inch, height=6*inch))
+                    
+                    # 相関係数の表
+                    display_cols = [column_names.get(col, col) for col in corr_data.columns]
+                    correlation_elements.append(Paragraph("相関係数", styles['Heading3']))
+                    table_data = [[""] + display_cols]
+                    for idx, display_idx in zip(corr_data.index, display_cols):
+                        row = [display_idx] + [f"{x:.2f}" for x in corr_data.loc[idx]]
+                        table_data.append(row)
+                    
+                    table = Table(table_data)
+                    table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, -1), self.font_name),
+                        ('FONTSIZE', (0, 0), (-1, 0), 10),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ]))
+                    correlation_elements.append(table)
+                    correlation_elements.append(Spacer(1, 0.5*cm))
+                
+                elements.append(KeepTogether(correlation_elements))
+        except Exception as e:
+            st.error(f"相関分析セクションの生成中にエラーが発生しました: {str(e)}")
+
+    def _add_importance_satisfaction_section(self, elements, dfs, config_manager, section_number, section):
         """重要度-満足度分析のセクションを追加"""
-        styles = self.styles
-        
-        elements.append(Paragraph(f"{section_number}. 重要度-満足度分析", styles['Heading1']))
-        elements.append(Paragraph(
-            "各項目の重要度と満足度の関係を分析しました。",
-            styles['JapaneseParagraph']
-        ))
-        elements.append(Spacer(1, 0.5*cm))
+        try:
+            styles = self.styles
+            
+            elements.append(Paragraph(f"{section_number}. {section['title']}", styles['Heading1']))
+            if section.get('description'):
+                elements.append(Paragraph(section['description'], styles['JapaneseParagraph']))
+            elements.append(Spacer(1, 0.5*cm))
 
-        for i, df in enumerate(dfs):
-            is_elements = []
-            is_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
-            
-            # データポイントの準備
-            pairs = config_manager.config.get('importance_satisfaction_pairs', {})
-            data_points = []
-            
-            for pair_name, pair_data in pairs.items():
-                importance_col = pair_data['importance']
-                satisfaction_col = pair_data['satisfaction']
+            for i, df in enumerate(dfs):
+                is_elements = []
+                is_elements.append(Paragraph(f"データセット {i+1}", styles['Heading2']))
                 
-                valid_data = df[[importance_col, satisfaction_col]].dropna()
-                if not valid_data.empty:
-                    data_points.append({
-                        'name': pair_name,
-                        'importance': valid_data[importance_col].mean(),
-                        'satisfaction': valid_data[satisfaction_col].mean()
-                    })
-            
-            if data_points:
-                # データポイントをDataFrameに変換
-                plot_data = pd.DataFrame(data_points)
+                # データポイントの準備
+                pairs = config_manager.config.get('importance_satisfaction_pairs', {})
+                data_points = []
                 
-                # 散布図の生成
-                img_stream = self._create_scatter_plot(plot_data)
-                try:
-                    is_elements.append(Image(img_stream, width=6*inch, height=6*inch))
-                except Exception as e:
-                    st.error(f"画像の追加中にエラーが発生しました: {str(e)}")
-            
-            elements.append(KeepTogether(is_elements))
+                for pair_name, pair_data in pairs.items():
+                    importance_col = pair_data['importance']
+                    satisfaction_col = pair_data['satisfaction']
+                    
+                    valid_data = df[[importance_col, satisfaction_col]].dropna()
+                    if not valid_data.empty:
+                        data_points.append({
+                            'name': pair_name,
+                            'importance': valid_data[importance_col].mean(),
+                            'satisfaction': valid_data[satisfaction_col].mean()
+                        })
+                
+                if data_points:
+                    # データポイントをDataFrameに変換
+                    plot_data = pd.DataFrame(data_points)
+                    
+                    # 散布図の生成
+                    img_stream = self._create_scatter_plot(plot_data)
+                    if img_stream:
+                        is_elements.append(Image(img_stream, width=6*inch, height=6*inch))
+                
+                elements.append(KeepTogether(is_elements))
+        except Exception as e:
+            st.error(f"重要度-満足度分析セクションの生成中にエラーが発生しました: {str(e)}")
 
-    def generate_pdf(self, dfs, config_manager, visualizer, settings_name="デフォルト設定"):
+    def generate_pdf(self, dfs, config_manager, visualizer, template_name):
         """PDFレポートを生成"""
-        if not dfs:
-            st.error("PDFを生成するにはデータが必要です。")
+        try:
+            if not dfs:
+                st.error("PDFを生成するにはデータが必要です。")
+                return None
+
+            # テンプレート設定の取得
+            templates = config_manager.config.get('pdf_settings', {}).get('templates', {})
+            if template_name not in templates:
+                st.error(f"テンプレート '{template_name}' が見つかりません。")
+                return None
+
+            template = templates[template_name]
+            if not template.get('sections'):
+                st.error("テンプレートにセクションが設定されていません。")
+                return None
+
+            output_path = f"reports/{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            
+            # 出力ディレクトリの作成
+            os.makedirs('reports', exist_ok=True)
+
+            # ドキュメントの基本設定
+            doc = SimpleDocTemplate(
+                output_path,
+                pagesize=A4,
+                rightMargin=2.5*cm,
+                leftMargin=2.5*cm,
+                topMargin=2.5*cm,
+                bottomMargin=2.5*cm
+            )
+
+            # 要素の準備
+            elements = []
+            
+            # タイトルページと目次の追加
+            elements.extend(self._create_title_page(template['title'], template.get('description', '')))
+            elements.extend(self._create_toc(template['sections']))
+
+            # セクションの生成
+            for i, section in enumerate(template['sections'], 1):
+                if section['type'] == '数値表':
+                    self._add_numeric_analysis_section(elements, dfs, config_manager, i, section)
+                elif section['type'] == '相関分析':
+                    self._add_correlation_analysis_section(elements, dfs, config_manager, i, section)
+                elif section['type'] == '重要度満足度':
+                    self._add_importance_satisfaction_section(elements, dfs, config_manager, i, section)
+
+            # PDFの生成
+            doc.build(elements)
+            return output_path
+
+        except Exception as e:
+            st.error(f"PDF生成中にエラーが発生しました: {str(e)}")
+            import traceback
+            st.error(f"エラーの詳細:\n{traceback.format_exc()}")
             return None
-
-        # 設定の取得
-        pdf_settings = config_manager.config.get('pdf_settings', {})
-        if settings_name not in pdf_settings:
-            st.error(f"PDF設定 '{settings_name}' が見つかりません。")
-            return None
-
-        settings = pdf_settings[settings_name]
-        output_path = "survey_analysis_report.pdf"
-
-        # ドキュメントの基本設定
-        doc = SimpleDocTemplate(
-            output_path,
-            pagesize=A4,
-            rightMargin=2.5*cm,
-            leftMargin=2.5*cm,
-            topMargin=2.5*cm,
-            bottomMargin=2.5*cm
-        )
-
-        # 要素の準備
-        elements = []
-        
-        # タイトルページと目次の追加
-        elements.extend(self._create_title_page())
-        elements.extend(self._create_toc())
-        
-        # 実施概要（常に含める）
-        overview_elements = []
-        overview_elements.append(Paragraph("1. 実施概要", self.styles['Heading1']))
-        overview_elements.append(Paragraph(
-            "本レポートは、意識調査の分析結果をまとめたものです。",
-            self.styles['JapaneseParagraph']
-        ))
-        overview_elements.append(Spacer(1, 0.5*cm))
-        
-        for i, df in enumerate(dfs):
-            overview_elements.append(Paragraph(
-                f"第{i+1}回調査: {len(df)}件の回答",
-                self.styles['JapaneseParagraph']
-            ))
-        overview_elements.append(Spacer(1, 1*cm))
-        elements.append(KeepTogether(overview_elements))
-
-        # 設定に基づいてセクションを生成
-        section_number = 2
-        for section in settings['sections']:
-            if section['type'] == '数値表':
-                self._add_numeric_analysis_section(
-                    elements, dfs, config_manager, 
-                    section_number, section['options']
-                )
-            elif section['type'] == '相関分析':
-                self._add_correlation_analysis_section(
-                    elements, dfs, config_manager,
-                    section_number, section['options']
-                )
-            elif section['type'] == '重要度満足度':
-                self._add_importance_satisfaction_section(
-                    elements, dfs, config_manager,
-                    section_number
-                )
-            section_number += 1
-
-        # PDFの生成
-        doc.build(elements)
-        return output_path
