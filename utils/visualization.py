@@ -2,6 +2,8 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 class Visualizer:
@@ -15,29 +17,31 @@ class Visualizer:
                     if isinstance(df, pd.DataFrame):
                         # データフレームの場合は直接書き込み
                         df.to_excel(writer,
-                                  sheet_name=sheet_name,
-                                  index=True,
-                                  header=True,
-                                  engine='openpyxl')
+                                    sheet_name=sheet_name,
+                                    index=True,
+                                    header=True,
+                                    engine='openpyxl')
                     elif isinstance(df, dict):
                         # 辞書の場合はデータフレームに変換して書き込み
                         pd.DataFrame(df).to_excel(writer,
-                                               sheet_name=sheet_name,
-                                               index=True,
-                                               header=True,
-                                               engine='openpyxl')
+                                                  sheet_name=sheet_name,
+                                                  index=True,
+                                                  header=True,
+                                                  engine='openpyxl')
                     else:
                         # その他の形式の場合は文字列に変換してデータフレームとして書き込み
-                        pd.DataFrame({'値': [str(df)]}).to_excel(writer,
-                                                              sheet_name=sheet_name,
-                                                              index=False,
-                                                              header=True,
-                                                              engine='openpyxl')
+                        pd.DataFrame({
+                            '値': [str(df)]
+                        }).to_excel(writer,
+                                    sheet_name=sheet_name,
+                                    index=False,
+                                    header=True,
+                                    engine='openpyxl')
             else:
                 data_dict.to_excel(writer,
-                                 index=True,
-                                 header=True,
-                                 engine='openpyxl')
+                                   index=True,
+                                   header=True,
+                                   engine='openpyxl')
 
         with open(excel_path, 'rb') as f:
             st.download_button(
@@ -54,38 +58,40 @@ class Visualizer:
     def _prepare_value_group_analysis(self, df, value_groups, column_names):
         """値グループ分析の結果を準備"""
         results = {}
-        
+
         for question, groups in value_groups.items():
             if question not in df.columns:
                 continue
-                
+
             display_name = column_names.get(question, question)
             group_results = {}
-            
+
             for range_str, group_name in groups.items():
                 try:
                     # 範囲の解析（例：'4-5' -> min=4, max=5）
                     if '-' in range_str:
                         min_val, max_val = map(int, range_str.split('-'))
-                        mask = (df[question] >= min_val) & (df[question] <= max_val)
+                        mask = (df[question] >= min_val) & (df[question]
+                                                            <= max_val)
                     else:
                         val = int(range_str)
                         mask = df[question] == val
-                        
+
                     count = mask.sum()
                     percentage = (count / len(df)) * 100
-                    
+
                     group_results[group_name] = {
                         '回答数': count,
                         '割合(%)': f'{percentage:.1f}'
                     }
                 except (ValueError, TypeError):
                     continue
-                    
+
             if group_results:
                 results[display_name] = pd.DataFrame(group_results).T
-                
+
         return results
+
     def _display_value_distribution(self, df, column_names):
         # 単一回答の数値列のみを抽出
         numeric_columns = []
@@ -234,93 +240,6 @@ class Visualizer:
                                                    config_manager)
 
     def _display_correlation_heatmap(self,
-         df,
-         column_names,
-         question_groups=None):
-    numeric_columns = df.select_dtypes(include=['number']).columns
-    if not numeric_columns.empty:
-    # 表示モードの選択
-    correlation_mode = st.radio("相関分析の表示モード:",
-            ["質問間の相関", "質問グループ間の相関"],
-            key="correlation_mode")
-
-    if correlation_mode == "質問間の相関":
-    # 質問グループの選択（質問間の相関モードの場合のみ表示）
-    group_options = ["すべての質問"] + list(question_groups.keys())
-    selected_group = st.selectbox("質問グループを選択:", group_options)
-
-    # 選択されたグループの列を取得
-    target_columns = question_groups.get(
-    selected_group,
-    df.columns) if selected_group != "すべての質問" else df.columns
-    df_filtered = df[target_columns]
-    numeric_columns = df_filtered.select_dtypes(
-    include=['number']).columns
-    display_columns = [
-    column_names.get(col, col) for col in numeric_columns
-    ]
-    corr_data = df[numeric_columns].corr()
-
-    # ヒートマップの作成
-    fig, ax = plt.subplots(figsize=(10, 8))
-    sns.heatmap(corr_data,
-    annot=True,
-    fmt=".2f",
-    cmap='RdBu',
-    xticklabels=display_columns,
-    yticklabels=display_columns,
-    cbar=True,
-    ax=ax)
-    ax.set_title("質問間の相関係数", fontsize=16)
-    plt.xticks(rotation=45, ha='right')
-    plt.yticks(rotation=0)
-
-    else:  # 質問グループ間の相関
-    if not question_groups:
-    st.info("質問グループが設定されていません。")
-    return
-
-    # グループごとの平均値を計算
-    group_means = {}
-    for group_name, questions in question_groups.items():
-    numeric_questions = [
-    q for q in questions if q in numeric_columns
-    ]
-    if numeric_questions:
-    # 各質問の回答の平均値をグループの特徴ベクトルとして使用
-    group_means[group_name] = df[numeric_questions].mean()
-
-    if not group_means:
-    st.info("有効な質問グループがありません。")
-    return
-
-    # グループ間の相関係数行列を作成
-    group_names = list(group_means.keys())
-    group_values = pd.DataFrame(group_means).fillna(0)  # 欠損値を0で埋める
-    corr_data = group_values.corr()
-
-    # ヒートマップの作成
-    fig, ax = plt.subplots(figsize=(10, 8))
-    sns.heatmap(corr_data,
-    annot=True,
-    fmt=".2f",
-    cmap='RdBu',
-    xticklabels=group_names,
-    yticklabels=group_names,
-    cbar=True,
-    ax=ax)
-    ax.set_title("質問グループ間の相関係数", fontsize=16)
-    plt.xticks(rotation=45, ha='right')
-    plt.yticks(rotation=0)
-
-    # Streamlitにヒートマップを表示
-    st.pyplot(fig)
-    plt.close(fig)  # メモリ解放のために図を閉じる
-
-    else:
-    st.info("数値データが見つかりませんでした。")
-    
-    def _display_correlation_heatmap(self,
                                      df,
                                      column_names,
                                      question_groups=None):
@@ -348,7 +267,8 @@ class Visualizer:
                 ]
                 corr_data = df[numeric_columns].corr()
 
-                fig = go.Figure(
+                # ヒートマップの作成（Plotly）
+                fig_p = go.Figure(
                     data=go.Heatmap(z=corr_data,
                                     x=display_columns,
                                     y=display_columns,
@@ -359,7 +279,21 @@ class Visualizer:
                                     textfont={"size": 10},
                                     hoverongaps=False))
 
-                title = "質問間の相関係数"
+                title_p = "質問間の相関係数"
+
+                # ヒートマップの作成（matplotlib）
+                fig_m, ax = plt.subplots(figsize=(10, 8))
+                sns.heatmap(corr_data,
+                            annot=True,
+                            fmt=".2f",
+                            cmap='RdBu',
+                            xticklabels=display_columns,
+                            yticklabels=display_columns,
+                            cbar=True,
+                            ax=ax)
+                ax.set_title("質問間の相関係数", fontsize=16)
+                plt.xticks(rotation=45, ha='right')
+                plt.yticks(rotation=0)
 
             else:  # 質問グループ間の相関
                 if not question_groups:
@@ -381,7 +315,8 @@ class Visualizer:
                 group_values = pd.DataFrame(group_means).fillna(0)  # 欠損値を0で埋める
                 corr_data = group_values.corr()
 
-                fig = go.Figure(
+                # ヒートマップの作成（Plotly）
+                fig_p = go.Figure(
                     data=go.Heatmap(z=corr_data,
                                     x=group_names,
                                     y=group_names,
@@ -392,15 +327,35 @@ class Visualizer:
                                     textfont={"size": 12},
                                     hoverongaps=False))
 
-                title = "質問グループ間の相関係数"
+                title_p = "質問グループ間の相関係数"
 
-            fig.update_layout(title=title,
-                              width=800,
-                              height=800,
-                              xaxis={'tickangle': 45},
-                              yaxis={'tickangle': 0})
+                # ヒートマップの作成（matplotlib）
+                fig_m, ax = plt.subplots(figsize=(10, 8))
+                sns.heatmap(corr_data,
+                            annot=True,
+                            fmt=".2f",
+                            cmap='RdBu',
+                            xticklabels=group_names,
+                            yticklabels=group_names,
+                            cbar=True,
+                            ax=ax)
+                ax.set_title("質問グループ間の相関係数", fontsize=16)
+                plt.xticks(rotation=45, ha='right')
+                plt.yticks(rotation=0)
 
-            st.plotly_chart(fig)
+            # Streamlitにヒートマップを表示（Plotly）
+            fig_p.update_layout(title=title_p,
+                                width=800,
+                                height=800,
+                                xaxis={'tickangle': 45},
+                                yaxis={'tickangle': 0})
+
+            st.plotly_chart(fig_p)
+
+            # Streamlitにヒートマップを表示（matplotlib）
+            st.pyplot(fig_m)
+            plt.close(fig_m)  # メモリ解放のために図を閉じる
+
         else:
             st.info("数値データが見つかりませんでした。")
 
