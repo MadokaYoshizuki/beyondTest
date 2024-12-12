@@ -6,7 +6,7 @@ from utils.config_manager import ConfigManager
 from utils.visualization import Visualizer
 from utils.pdf_generator import PDFGenerator
 
-st.set_page_config(layout="wide", page_title="意識調査データ分析ダッシュボード")
+st.set_page_config(layout="wide", page_title="意識調査")
 
 
 def main():
