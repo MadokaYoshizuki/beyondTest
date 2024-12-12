@@ -22,7 +22,7 @@ def main():
 
     # メインメニューの追加
     menu_options = [
-        "1.データアップロード", "2.データ分析", "3.設定", "4.集計", "5.可視化", "6.PDF出力"
+        "1.データアップロード", "2.データ分析", "3.設定", "4.集計", "5.可視化"
     ]
 
     # サイドバーにタイトルを追加
@@ -552,15 +552,15 @@ def main():
             st.session_state.data_processor.dfs,
             st.session_state.config_manager)
 
-    elif st.session_state.current_menu == "6.PDF出力":
-        st.markdown("## 6. PDF出力")
-        #st.markdown("---")
-        if st.button("PDF出力"):
-            pdf_generator = PDFGenerator()
-            pdf_path = pdf_generator.generate_pdf(
-                st.session_state.data_processor.dfs,
-                st.session_state.config_manager, st.session_state.visualizer)
-            st.success(f"PDFを生成しました: {pdf_path}")
+    # elif st.session_state.current_menu == "6.PDF出力":
+    #     st.markdown("## 6. PDF出力")
+    #     #st.markdown("---")
+    #     if st.button("PDF出力"):
+    #         pdf_generator = PDFGenerator()
+    #         pdf_path = pdf_generator.generate_pdf(
+    #             st.session_state.data_processor.dfs,
+    #             st.session_state.config_manager, st.session_state.visualizer)
+    #         st.success(f"PDFを生成しました: {pdf_path}")
 
 
 if __name__ == "__main__":

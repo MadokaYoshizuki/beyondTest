@@ -4,7 +4,15 @@ import plotly.graph_objects as go
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from io import BytesIO
+import matplotlib.font_manager as fm
+import os
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape, portrait
+from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.utils import ImageReader
 
 class Visualizer:
 
@@ -224,7 +232,7 @@ class Visualizer:
 
         # 1. 相関係数ヒートマップ
         st.write("**1. 相関係数ヒートマップ**")
-        self._display_correlation_heatmap(df, column_names, question_groups)
+        self._display_correlation_heatmap(df, column_names, config_manager, question_groups)
 
         # 2. 回答の件数と構成比の帯グラフ
         st.write("**2. 回答の分布**")
@@ -242,36 +250,63 @@ class Visualizer:
     def _display_correlation_heatmap(self,
                                      df,
                                      column_names,
+                                     config_manager,
                                      question_groups=None):
         numeric_columns = df.select_dtypes(include=['number']).columns
         if not numeric_columns.empty:
+
+            # # フォントキャッシュのクリア
+            # fm._rebuild()
+
+            # 日本語フォントの設定
+            font_path = os.path.join('./fonts', 'NotoSansJP-Light.ttf')  # フォントファイルのパス
+            if os.path.exists(font_path):
+                pdfmetrics.registerFont(TTFont('NotoSansJP-Light', font_path))
+                FONT_NAME = 'NotoSansJP-Light'
+            else:
+                st.warning("指定したフォントファイルが見つかりません。デフォルトフォントを使用します。")
+                FONT_NAME = 'Helvetica'
+
+            # `st.session_state` に図を保存するリストを初期化
+            if 'correlation_heatmap_figures' not in st.session_state:
+                st.session_state['correlation_heatmap_figures'] = []
+            else:
+                # 必要に応じてリストをクリア
+                st.session_state['correlation_heatmap_figures'] = []
+
             # 表示モードの選択
             correlation_mode = st.radio("相関分析の表示モード:",
                                         ["質問間の相関", "質問グループ間の相関"],
                                         key="correlation_mode")
 
-            if correlation_mode == "質問間の相関":
-                # 質問グループの選択（質問間の相関モードの場合のみ表示）
-                group_options = ["すべての質問"] + list(question_groups.keys())
-                selected_group = st.selectbox("質問グループを選択:", group_options)
+            # 属性の選択
+            attributes = ["全体"] + config_manager.config.get('attributes', [])
+            selected_attribute = st.selectbox("属性項目を選択:", attributes)
 
-                # 選択されたグループの列を取得
-                target_columns = question_groups.get(
-                    selected_group,
-                    df.columns) if selected_group != "すべての質問" else df.columns
-                df_filtered = df[target_columns]
-                numeric_columns = df_filtered.select_dtypes(
-                    include=['number']).columns
-                display_columns = [
-                    column_names.get(col, col) for col in numeric_columns
-                ]
+            if correlation_mode == "質問間の相関":
+                # # 質問グループの選択（質問間の相関モードの場合のみ表示）
+                # group_options = ["すべての質問"] + list(question_groups.keys())
+                # selected_group = st.selectbox("質問グループを選択:", group_options)
+
+                # # 選択されたグループの列を取得
+                # target_columns = question_groups.get(
+                #     selected_group,
+                #     df.columns) if selected_group != "すべての質問" else df.columns
+                # df_filtered = df[target_columns]
+                # numeric_columns = df_filtered.select_dtypes(
+                #     include=['number']).columns
+                # display_columns = [
+                #     column_names.get(col, col) for col in numeric_columns
+                # ]
                 corr_data = df[numeric_columns].corr()
 
                 # ヒートマップの作成（Plotly）
                 fig_p = go.Figure(
                     data=go.Heatmap(z=corr_data,
-                                    x=display_columns,
-                                    y=display_columns,
+                                    # x=display_columns,
+                                    # y=display_columns,
+                                    x=numeric_columns,
+                                    y=numeric_columns,
                                     colorscale='RdBu',
                                     text=[[f'{val:.2f}' for val in row]
                                           for row in corr_data.values],
@@ -279,21 +314,32 @@ class Visualizer:
                                     textfont={"size": 10},
                                     hoverongaps=False))
 
-                title_p = "質問間の相関係数"
+                title_p = correlation_mode
 
                 # ヒートマップの作成（matplotlib）
                 fig_m, ax = plt.subplots(figsize=(10, 8))
+                
                 sns.heatmap(corr_data,
                             annot=True,
                             fmt=".2f",
                             cmap='RdBu',
-                            xticklabels=display_columns,
-                            yticklabels=display_columns,
+                            # xticklabels=display_columns,
+                            # yticklabels=display_columns,
+                            xticklabels=numeric_columns,
+                            yticklabels=numeric_columns,
                             cbar=True,
-                            ax=ax)
-                ax.set_title("質問間の相関係数", fontsize=16)
-                plt.xticks(rotation=45, ha='right')
-                plt.yticks(rotation=0)
+                            ax=ax,
+                            annot_kws={"fontproperties": fm.FontProperties(fname=font_path)} if os.path.exists(font_path) else {}
+                           )
+
+                fig_m.suptitle(correlation_mode, fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None,fontsize=16)
+                plt.xticks(rotation=45, ha='right', fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None)
+                plt.yticks(rotation=0, fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None)
+
+                plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+                
+                # # 図をリストに追加
+                # st.session_state['correlation_heatmap_figures'].append(fig_m)
 
             else:  # 質問グループ間の相関
                 if not question_groups:
@@ -327,7 +373,7 @@ class Visualizer:
                                     textfont={"size": 12},
                                     hoverongaps=False))
 
-                title_p = "質問グループ間の相関係数"
+                title_p = correlation_mode
 
                 # ヒートマップの作成（matplotlib）
                 fig_m, ax = plt.subplots(figsize=(10, 8))
@@ -338,24 +384,220 @@ class Visualizer:
                             xticklabels=group_names,
                             yticklabels=group_names,
                             cbar=True,
-                            ax=ax)
-                ax.set_title("質問グループ間の相関係数", fontsize=16)
-                plt.xticks(rotation=45, ha='right')
-                plt.yticks(rotation=0)
+                            ax=ax,
+                            annot_kws={"fontproperties": fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None}
+                            )
+                fig_m.suptitle(correlation_mode, fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None, fontsize=16)
+                plt.xticks(rotation=45, ha='right', fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None)
+                plt.yticks(rotation=0, fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None)
 
-            # Streamlitにヒートマップを表示（Plotly）
-            fig_p.update_layout(title=title_p,
-                                width=800,
-                                height=800,
-                                xaxis={'tickangle': 45},
-                                yaxis={'tickangle': 0})
+                plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-            st.plotly_chart(fig_p)
+            # 属性が「全体」の場合、全体のヒートマップのみを表示・保存
+            if selected_attribute == "全体":
+                # ヒートマップを表示（Plotly）
+                fig_p.update_layout(title=title_p,
+                                    width=800,
+                                    height=800,
+                                    xaxis={'tickangle': 45},
+                                    yaxis={'tickangle': 0})
+    
+                st.plotly_chart(fig_p)
+    
+                # # ヒートマップを表示（matplotlib）
+                # st.pyplot(fig_m)
 
-            # Streamlitにヒートマップを表示（matplotlib）
-            st.pyplot(fig_m)
-            plt.close(fig_m)  # メモリ解放のために図を閉じる
+                # 図をリストに追加
+                st.session_state['correlation_heatmap_figures'].append(fig_m)
 
+            # 属性が選択されていて「全体」ではない場合、各属性値ごとのヒートマップを生成・保存
+            else:
+                attribute_values = df[selected_attribute].dropna().unique()
+                num_values = len(attribute_values)
+
+                if num_values == 0:
+                    st.info(f"属性項目 '{selected_attribute}' に有効な値がありません。")
+                    return
+
+                # 1行あたりの列数を設定
+                cols_per_row = 2
+                num_rows = (num_values + cols_per_row - 1) // cols_per_row
+
+                # st.subheader(f"属性項目 '{selected_attribute}' の各値ごとの相関係数ヒートマップ")
+
+                for row in range(num_rows):
+                    cols = st.columns(cols_per_row)
+                    for col_idx in range(cols_per_row):
+                        value_idx = row * cols_per_row + col_idx
+                        if value_idx >= num_values:
+                            break
+                        attr_value = attribute_values[value_idx]
+                        subset_df = df[df[selected_attribute] == attr_value]
+
+                        # サブセットの数値列
+                        subset_numeric = subset_df.select_dtypes(include=['number']).columns
+                        if len(subset_numeric) == 0:
+                            st.warning(f"属性値 '{attr_value}' に数値データがありません。")
+                            continue
+                        subset_corr = subset_df[subset_numeric].corr()
+
+                        # Plotlyヒートマップの作成
+                        subset_display_columns = [
+                            column_names.get(col, col) for col in subset_numeric
+                        ]
+                        fig_p_subset = go.Figure(
+                            data=go.Heatmap(z=subset_corr,
+                                            x=subset_display_columns,
+                                            y=subset_display_columns,
+                                            colorscale='RdBu',
+                                            text=[[f'{val:.2f}' for val in row]
+                                                  for row in subset_corr.values],
+                                            texttemplate='%{text}',
+                                            textfont={"size": 8},
+                                            hoverongaps=False))
+
+                        fig_p_subset.update_layout(
+                            # title=f"{selected_attribute}: {attr_value}",
+                            title=f"{correlation_mode}: {attr_value}",
+                            width=250,
+                            height=250,
+                            xaxis={'tickangle': 45},
+                            yaxis={'tickangle': 0},
+                            margin=dict(l=20, r=20, t=40, b=20)
+                        )
+
+                        # matplotlibヒートマップの作成
+                        # fig_m_subset, ax_subset = plt.subplots(figsize=(3, 3))
+                        fig_m_subset, ax_subset = plt.subplots(figsize=(10, 8))
+                        sns.heatmap(subset_corr,
+                                    annot=True,
+                                    fmt=".2f",
+                                    cmap='RdBu',
+                                    xticklabels=subset_display_columns,
+                                    yticklabels=subset_display_columns,
+                                    cbar=True,
+                                    ax=ax_subset,
+                                    annot_kws={"fontproperties": fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None})
+
+                        # 図全体のタイトルを設定
+                        # fig_m_subset.suptitle(f"{selected_attribute}: {attr_value}", fontproperties=prop if os.path.exists(font_path) else None, fontsize=10)
+                        fig_m_subset.suptitle(f"{correlation_mode}: {attr_value}", fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None, fontsize=10)
+
+                        # 軸ラベルの回転
+                        plt.xticks(rotation=45, ha='right', fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None)
+                        plt.yticks(rotation=0, fontproperties=fm.FontProperties(fname=font_path) if os.path.exists(font_path) else None)
+
+                        # レイアウトの調整（タイトルが切れないように）
+                        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+                        # 列にヒートマップを表示
+                        with cols[col_idx]:
+                            st.plotly_chart(fig_p_subset, use_container_width=True)
+                            # st.pyplot(fig_m_subset)
+                            plt.close(fig_m_subset)
+
+                            # 図をリストに追加
+                            st.session_state['correlation_heatmap_figures'].append(fig_m_subset)
+
+            # PDF出力設定
+            st.markdown("### PDF出力設定")
+
+            # タイトルと説明文の入力
+            pdf_title = st.text_input("PDFのタイトルを入力してください", "ヒートマップレポート")
+            pdf_description = st.text_area("説明文を入力してください", "このレポートは、XXXの相関係数を示しています。")
+
+            # PDF出力ボタン
+            if pdf_title and pdf_description:
+                def generate_pdf(title, description):
+                    try:
+                        # PDFバッファの初期化
+                        pdf_buffer = BytesIO()
+                        c = canvas.Canvas(pdf_buffer, pagesize=portrait(A4))
+    
+                        # タイトルページの作成
+                        c.setFont(FONT_NAME, 24)
+                        c.drawCentredString(A4[0] / 2, A4[1] * 0.6, title)
+                        c.setFont(FONT_NAME, 14)
+                        text_object = c.beginText()
+                        text_object.setTextOrigin(A4[0] * 0.1, A4[1] * 0.4)
+                        text_object.setFont(FONT_NAME, 14)
+                        for line in description.split('\n'):
+                            text_object.textLine(line)
+                        c.drawText(text_object)
+                        c.showPage()
+    
+                        # ヒートマップページの追加（縦置き）
+                        for fig in st.session_state['correlation_heatmap_figures']:
+                            # 図を一時的なバッファに保存
+                            img_buffer = BytesIO()
+                            fig.savefig(img_buffer, format='PNG', bbox_inches='tight')
+                            img_buffer.seek(0)
+    
+                            # ReportLabに縦置きページを追加
+                            c.setPageSize(portrait(A4))
+                            image = ImageReader(img_buffer)
+                            # 画像の挿入位置とサイズを調整
+                            # ReportLabのdrawImageは画像の左下を基準に配置するため、位置を調整
+                            # 余白を設定して画像を中央に配置
+                            img_width, img_height = fig.get_size_inches() * fig.dpi
+                            page_width, page_height = portrait(A4)
+                            available_width = page_width - 2 * inch
+                            available_height = page_height - 2 * inch
+                            aspect = img_height / img_width
+    
+                            if img_width > available_width or img_height > available_height:
+                                # 画像のサイズを調整
+                                if (available_width / available_height) < aspect:
+                                    # 幅を基準に調整
+                                    display_width = available_width
+                                    display_height = available_width * aspect
+                                else:
+                                    # 高さを基準に調整
+                                    display_height = available_height
+                                    display_width = available_height / aspect
+                            else:
+                                display_width = img_width
+                                display_height = img_height
+    
+                            x = (page_width - display_width) / 2
+                            y = (page_height - display_height) / 2
+    
+                            c.drawImage(image, x, y, width=display_width, height=display_height)
+                            c.showPage()
+    
+                        c.save()
+                        pdf_buffer.seek(0)
+                        return pdf_buffer
+                    except Exception as e:
+                        st.error(f"PDF生成中にエラーが発生しました: {e}")
+                        return None
+    
+                # ボタンのクリックイベントを処理
+                if st.button("PDF出力", key="pdf_button"):
+                    with st.spinner("PDFを生成中..."):
+                        # PDFを生成
+                        pdf_buffer = generate_pdf(pdf_title, pdf_description)
+    
+                    if pdf_buffer:
+                        # PDFダウンロードボタンを表示
+                        st.download_button(
+                            label="PDFをダウンロード",
+                            data=pdf_buffer,
+                            file_name='heatmap_report.pdf',
+                            mime='application/pdf'
+                        )
+    
+                        # 成功メッセージを表示
+                        st.success("ヒートマップをPDFとして出力しました。")
+    
+                        # PDF出力後、ヒートマップのリストをクリア
+                        st.session_state['correlation_heatmap_figures'].clear()
+            else:
+                if not st.session_state['correlation_heatmap_figures']:
+                    st.info("保存するヒートマップがありません。")
+                elif not pdf_title or not pdf_description:
+                    st.info("PDFのタイトルと説明文を入力してください。")
+                            
         else:
             st.info("数値データが見つかりませんでした。")
 
