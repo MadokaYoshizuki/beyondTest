@@ -51,6 +51,41 @@ class Visualizer:
         import os
         os.remove(excel_path)
 
+    def _prepare_value_group_analysis(self, df, value_groups, column_names):
+        """値グループ分析の結果を準備"""
+        results = {}
+        
+        for question, groups in value_groups.items():
+            if question not in df.columns:
+                continue
+                
+            display_name = column_names.get(question, question)
+            group_results = {}
+            
+            for range_str, group_name in groups.items():
+                try:
+                    # 範囲の解析（例：'4-5' -> min=4, max=5）
+                    if '-' in range_str:
+                        min_val, max_val = map(int, range_str.split('-'))
+                        mask = (df[question] >= min_val) & (df[question] <= max_val)
+                    else:
+                        val = int(range_str)
+                        mask = df[question] == val
+                        
+                    count = mask.sum()
+                    percentage = (count / len(df)) * 100
+                    
+                    group_results[group_name] = {
+                        '回答数': count,
+                        '割合(%)': f'{percentage:.1f}'
+                    }
+                except (ValueError, TypeError):
+                    continue
+                    
+            if group_results:
+                results[display_name] = pd.DataFrame(group_results).T
+                
+        return results
     def _display_value_distribution(self, df, column_names):
         # 単一回答の数値列のみを抽出
         numeric_columns = []
