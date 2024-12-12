@@ -234,6 +234,93 @@ class Visualizer:
                                                    config_manager)
 
     def _display_correlation_heatmap(self,
+         df,
+         column_names,
+         question_groups=None):
+    numeric_columns = df.select_dtypes(include=['number']).columns
+    if not numeric_columns.empty:
+    # 表示モードの選択
+    correlation_mode = st.radio("相関分析の表示モード:",
+            ["質問間の相関", "質問グループ間の相関"],
+            key="correlation_mode")
+
+    if correlation_mode == "質問間の相関":
+    # 質問グループの選択（質問間の相関モードの場合のみ表示）
+    group_options = ["すべての質問"] + list(question_groups.keys())
+    selected_group = st.selectbox("質問グループを選択:", group_options)
+
+    # 選択されたグループの列を取得
+    target_columns = question_groups.get(
+    selected_group,
+    df.columns) if selected_group != "すべての質問" else df.columns
+    df_filtered = df[target_columns]
+    numeric_columns = df_filtered.select_dtypes(
+    include=['number']).columns
+    display_columns = [
+    column_names.get(col, col) for col in numeric_columns
+    ]
+    corr_data = df[numeric_columns].corr()
+
+    # ヒートマップの作成
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(corr_data,
+    annot=True,
+    fmt=".2f",
+    cmap='RdBu',
+    xticklabels=display_columns,
+    yticklabels=display_columns,
+    cbar=True,
+    ax=ax)
+    ax.set_title("質問間の相関係数", fontsize=16)
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+
+    else:  # 質問グループ間の相関
+    if not question_groups:
+    st.info("質問グループが設定されていません。")
+    return
+
+    # グループごとの平均値を計算
+    group_means = {}
+    for group_name, questions in question_groups.items():
+    numeric_questions = [
+    q for q in questions if q in numeric_columns
+    ]
+    if numeric_questions:
+    # 各質問の回答の平均値をグループの特徴ベクトルとして使用
+    group_means[group_name] = df[numeric_questions].mean()
+
+    if not group_means:
+    st.info("有効な質問グループがありません。")
+    return
+
+    # グループ間の相関係数行列を作成
+    group_names = list(group_means.keys())
+    group_values = pd.DataFrame(group_means).fillna(0)  # 欠損値を0で埋める
+    corr_data = group_values.corr()
+
+    # ヒートマップの作成
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(corr_data,
+    annot=True,
+    fmt=".2f",
+    cmap='RdBu',
+    xticklabels=group_names,
+    yticklabels=group_names,
+    cbar=True,
+    ax=ax)
+    ax.set_title("質問グループ間の相関係数", fontsize=16)
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+
+    # Streamlitにヒートマップを表示
+    st.pyplot(fig)
+    plt.close(fig)  # メモリ解放のために図を閉じる
+
+    else:
+    st.info("数値データが見つかりませんでした。")
+    
+    def _display_correlation_heatmap(self,
                                      df,
                                      column_names,
                                      question_groups=None):
