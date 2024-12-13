@@ -6,7 +6,7 @@ from utils.config_manager import ConfigManager
 from utils.visualization import Visualizer
 from utils.pdf_generator import PDFGenerator
 
-st.set_page_config(layout="wide", page_title="意識調査")
+st.set_page_config(layout="wide", page_title="組織診断結果分析")
 
 
 def main():
@@ -21,12 +21,10 @@ def main():
         st.session_state.current_menu = "1.データアップロード"
 
     # メインメニューの追加
-    menu_options = [
-        "1.データアップロード", "2.データ分析", "3.設定", "4.集計", "5.可視化"
-    ]
+    menu_options = ["1.データアップロード", "2.データ分析", "3.設定", "4.集計", "5.可視化"]
 
     # サイドバーにタイトルを追加
-    st.sidebar.title("意識調査データ分析ダッシュボード")
+    st.sidebar.title("組織診断結果分析")
     #st.sidebar.markdown("---")  # 区切り線を追加
     #st.sidebar.markdown("### メニュー")
     st.session_state.current_menu = st.sidebar.radio("", menu_options)
@@ -34,7 +32,7 @@ def main():
     # 各セクションの条件分岐
     if st.session_state.current_menu == "1.データアップロード":
         st.markdown("## 1. データアップロード")
-        st.markdown("##### ※ 時期の古いものから順にしてください")
+        # st.markdown("##### ※ 時期の古いものから順にしてください")
         #st.markdown("---")
 
         # セッション状態の初期化

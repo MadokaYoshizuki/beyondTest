@@ -13,6 +13,8 @@ from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Paragraph, Frame
+from reportlab.lib.styles import getSampleStyleSheet
 
 class Visualizer:
 
@@ -53,7 +55,7 @@ class Visualizer:
 
         with open(excel_path, 'rb') as f:
             st.download_button(
-                label="Excelファイルをダウンロード",
+                label="まとめてダウンロード",
                 data=f,
                 file_name=excel_path,
                 mime=
@@ -298,7 +300,7 @@ class Visualizer:
                 # 全体のタイトルと説明文を入力
                 with st.expander("全体の設定"):
                     overall_title = st.text_input("PDFの全体タイトルを入力してください", "ヒートマップレポート全体", key="overall_title")
-                    overall_description = st.text_area("全体の説明文を入力してください", "このレポートは、選択された属性項目に基づく相関係数を示しています。", key="overall_description")
+                    overall_description = st.text_area("全体の説明文を入力してください", "このヒートマップは、データ全体の相関係数を示しています。", key="overall_description")
 
             else:
                 # 属性項目ごとにデータをフィルタリングしてサブセットを作成
@@ -312,7 +314,7 @@ class Visualizer:
                 # 属性項目ごとのタイトルと説明文を入力
                 with st.expander(f"{selected_attribute} の設定"):
                     attr_title = st.text_input(f"{selected_attribute} のタイトル", f"{selected_attribute} に基づく相関係数ヒートマップ", key="attribute_title")
-                    attr_description = st.text_area(f"{selected_attribute} の説明文", f"このヒートマップは、属性項目 '{selected_attribute}' の各項目ごとの相関係数を示しています。", key="attribute_description")
+                    attr_description = st.text_area(f"{selected_attribute} の説明文", f"このヒートマップは、属性『{selected_attribute}』ごとに集計した質問間の相関を示しています。", key="attribute_description")
     
                 for attr_value in attribute_values:
                     subset_df = df[df[selected_attribute] == attr_value]
@@ -416,113 +418,142 @@ class Visualizer:
             # 「全体」の場合は全体のタイトルと説明文が必要、それ以外は不要
             # if (selected_attribute == "全体" and overall_title and overall_description) or (selected_attribute != "全体"):
 
-            if (selected_attribute == "全体") or (selected_attribute != "全体"):
-                # def generate_pdf(overall_title, overall_description):
-                def generate_pdf(title, description):
-                    try:
-                        # PDFバッファの初期化
-                        pdf_buffer = BytesIO()
-                        c = canvas.Canvas(pdf_buffer, pagesize=portrait(A4))
+            # def generate_pdf(overall_title, overall_description):
+            def generate_pdf(title, description):
+                try:
+                    # PDFバッファの初期化
+                    pdf_buffer = BytesIO()
+                    c = canvas.Canvas(pdf_buffer, pagesize=portrait(A4))
+                    page_width, page_height = portrait(A4)
 
-                        # 表紙の作成
-                        c.setFont(FONT_NAME, 24)
-                        c.drawCentredString(A4[0] / 2, A4[1] * 0.7, title)
-                        c.setFont(FONT_NAME, 14)
-                        text_object = c.beginText()
-                        text_object.setTextOrigin(A4[0] * 0.1, A4[1] * 0.5)
-                        text_object.setFont(FONT_NAME, 14)
-                        for line in description.split('\n'):
-                            text_object.textLine(line)
-                        c.drawText(text_object)
+                    # 余白の設定
+                    margin_left = inch * 1  # 左余白
+                    margin_right = inch * 1 # 右余白
+
+                    # 表紙
+                    styles = getSampleStyleSheet()
+                    # タイトル
+                    style_t = styles['Normal']
+                    style_t.fontName = FONT_NAME
+                    style_t.fontSize = 24
+                    style_t.leading = 30  # 行間の設定
+                    paragraph_t = Paragraph(title, style_t)
+                    # 説明文
+                    style_d = styles['Normal']
+                    style_d.fontName = FONT_NAME
+                    style_d.fontSize = 14
+                    style_d.leading = 18  # 行間の設定
+                    paragraph_d = Paragraph(description, style_d)
+
+                    # Paragraphを描画するためのFrameの設定
+                    frame_width = page_width - margin_left - margin_right
+                    frame_height_t = 30  # 適宜調整
+                    frame_height_d = page_height * 0.5  # 適宜調整
+                    frame_t= Frame(margin_left, page_height*0.7, frame_width, frame_height_t, showBoundary=0)
+                    frame_d = Frame(margin_left, page_height * 0.1, frame_width, frame_height_d, showBoundary=0)
+
+                    # ParagraphをFrameに描画
+                    frame_t.addFromList([paragraph_t], c) # タイトル
+                    frame_d.addFromList([paragraph_d], c) # 説明文
+
+                    c.showPage()
+                    # c.setFont(FONT_NAME, 14)
+                    # text_object = c.beginText()
+                    # text_object.setTextOrigin(A4[0] * 0.1, A4[1] * 0.5)
+                    # text_object.setFont(FONT_NAME, 14)
+                    # for line in description.split('\n'):
+                    #     text_object.textLine(line)
+                    # c.drawText(text_object)
+                    # c.showPage()
+
+                    
+                    # # 全体タイトルページの作成（「全体」の場合のみ）
+                    # if selected_attribute == "全体":
+                    #     c.setFont(FONT_NAME, 24)
+                    #     c.drawCentredString(A4[0] / 2, A4[1] * 0.7, overall_title)
+                    #     c.setFont(FONT_NAME, 14)
+                    #     text_object = c.beginText()
+                    #     text_object.setTextOrigin(A4[0] * 0.1, A4[1] * 0.5)
+                    #     text_object.setFont(FONT_NAME, 14)
+                    #     for line in overall_description.split('\n'):
+                    #         text_object.textLine(line)
+                    #     c.drawText(text_object)
+                    #     c.showPage()
+
+                    # 各ヒートマップページの追加
+                    for item in st.session_state['correlation_heatmap_figures']:
+                        fig = item['figure']
+                        title = item.get('title', '')
+                        description = item.get('description', '')
+    
+                        # 図を一時的なバッファに保存
+                        img_buffer = BytesIO()
+                        fig.savefig(img_buffer, format='PNG', bbox_inches='tight')
+                        img_buffer.seek(0)
+            
+                        # ReportLabに縦置きページを追加
+                        c.setPageSize(portrait(A4))
+                        image = ImageReader(img_buffer)
+                
+                        # 画像の挿入位置とサイズを調整
+                        img_width, img_height = fig.get_size_inches() * fig.dpi
+                        page_width, page_height = portrait(A4)
+                        available_width = page_width - 2 * inch
+                        available_height = page_height - 2 * inch
+                        aspect = img_height / img_width
+
+                        if img_width > available_width or img_height > available_height:
+                            # 画像のサイズを調整
+                            if (available_width / available_height) < aspect:
+                                # 幅を基準に調整
+                                display_width = available_width
+                                display_height = available_width * aspect
+                            else:
+                                # 高さを基準に調整
+                                display_height = available_height
+                                display_width = available_height / aspect
+                        else:
+                            display_width = img_width
+                            display_height = img_height
+    
+                        x = (page_width - display_width) / 2
+                        y = (page_height - display_height) / 2
+    
+                        c.drawImage(image, x, y, width=display_width, height=display_height)
+                
+                        # タイトルの追加
+                        c.setFont(FONT_NAME, 16)
+                        c.drawCentredString(page_width / 2, y + display_height + 0.5 * inch, title)
+                        # c.setFont(FONT_NAME, 12)
+                        # text_object = c.beginText()
+                        # text_object.setTextOrigin(inch, y - 0.5 * inch)
+                        # text_object.setFont(FONT_NAME, 12)
+                        # for line in description.split('\n'):
+                        #     text_object.textLine(line)
+                        # c.drawText(text_object)
+
+                        # # タイトルと説明文の追加
+                        # c.setFont(FONT_NAME, 16)
+                        # c.drawCentredString(page_width / 2, y + display_height + 0.5 * inch, title)
+                        # c.setFont(FONT_NAME, 12)
+                        # text_object = c.beginText()
+                        # text_object.setTextOrigin(inch, y - 0.5 * inch)
+                        # text_object.setFont(FONT_NAME, 12)
+                        # for line in description.split('\n'):
+                        #     text_object.textLine(line)
+                        # c.drawText(text_object)
+    
                         c.showPage()
 
-                        # # 全体タイトルページの作成（「全体」の場合のみ）
-                        # if selected_attribute == "全体":
-                        #     c.setFont(FONT_NAME, 24)
-                        #     c.drawCentredString(A4[0] / 2, A4[1] * 0.7, overall_title)
-                        #     c.setFont(FONT_NAME, 14)
-                        #     text_object = c.beginText()
-                        #     text_object.setTextOrigin(A4[0] * 0.1, A4[1] * 0.5)
-                        #     text_object.setFont(FONT_NAME, 14)
-                        #     for line in overall_description.split('\n'):
-                        #         text_object.textLine(line)
-                        #     c.drawText(text_object)
-                        #     c.showPage()
-    
-                        # 各ヒートマップページの追加
-                        for item in st.session_state['correlation_heatmap_figures']:
-                            fig = item['figure']
-                            title = item.get('title', '')
-                            description = item.get('description', '')
-        
-                            # 図を一時的なバッファに保存
-                            img_buffer = BytesIO()
-                            fig.savefig(img_buffer, format='PNG', bbox_inches='tight')
-                            img_buffer.seek(0)
-                
-                            # ReportLabに縦置きページを追加
-                            c.setPageSize(portrait(A4))
-                            image = ImageReader(img_buffer)
-                    
-                            # 画像の挿入位置とサイズを調整
-                            img_width, img_height = fig.get_size_inches() * fig.dpi
-                            page_width, page_height = portrait(A4)
-                            available_width = page_width - 2 * inch
-                            available_height = page_height - 2 * inch
-                            aspect = img_height / img_width
-    
-                            if img_width > available_width or img_height > available_height:
-                                # 画像のサイズを調整
-                                if (available_width / available_height) < aspect:
-                                    # 幅を基準に調整
-                                    display_width = available_width
-                                    display_height = available_width * aspect
-                                else:
-                                    # 高さを基準に調整
-                                    display_height = available_height
-                                    display_width = available_height / aspect
-                            else:
-                                display_width = img_width
-                                display_height = img_height
-        
-                            x = (page_width - display_width) / 2
-                            y = (page_height - display_height) / 2
-        
-                            c.drawImage(image, x, y, width=display_width, height=display_height)
-                    
-                            # タイトルの追加
-                            c.setFont(FONT_NAME, 16)
-                            c.drawCentredString(page_width / 2, y + display_height + 0.5 * inch, title)
-                            # c.setFont(FONT_NAME, 12)
-                            # text_object = c.beginText()
-                            # text_object.setTextOrigin(inch, y - 0.5 * inch)
-                            # text_object.setFont(FONT_NAME, 12)
-                            # for line in description.split('\n'):
-                            #     text_object.textLine(line)
-                            # c.drawText(text_object)
+                    c.save()
+                    pdf_buffer.seek(0)
+                    return pdf_buffer
+                except Exception as e:
+                    st.error(f"PDF生成中にエラーが発生しました: {e}")
+                    return None
 
-                            # # タイトルと説明文の追加
-                            # c.setFont(FONT_NAME, 16)
-                            # c.drawCentredString(page_width / 2, y + display_height + 0.5 * inch, title)
-                            # c.setFont(FONT_NAME, 12)
-                            # text_object = c.beginText()
-                            # text_object.setTextOrigin(inch, y - 0.5 * inch)
-                            # text_object.setFont(FONT_NAME, 12)
-                            # for line in description.split('\n'):
-                            #     text_object.textLine(line)
-                            # c.drawText(text_object)
-        
-                            c.showPage()
-    
-                        c.save()
-                        pdf_buffer.seek(0)
-                        return pdf_buffer
-                    except Exception as e:
-                        st.error(f"PDF生成中にエラーが発生しました: {e}")
-                        return None
-    
-                # ボタンのクリックイベントを処理
-                if st.button("PDF出力", key="pdf_button"):
+            # ボタンのクリックイベントを処理
+            if st.button("PDF出力", key="pdf_button"):
                     with st.spinner("PDFを生成中..."):
                         if (selected_attribute == "全体"):
                             top_title = overall_title
@@ -548,13 +579,6 @@ class Visualizer:
         
                         # PDF出力後、ヒートマップのリストをクリア
                         st.session_state['correlation_heatmap_figures'].clear()
-            else:
-                # if selected_attribute == "全体" and (not overall_title or not overall_description):
-                #     st.info("PDFの全体タイトルと説明文を入力してください。")
-                # elif selected_attribute != "全体" and not st.session_state['correlation_heatmap_figures']:
-                #     st.info("保存するヒートマップがありません。")
-                if selected_attribute != "全体" and not st.session_state['correlation_heatmap_figures']:
-                    st.info("保存するヒートマップがありません。")
         else:
             st.info("数値データが見つかりませんでした。")
 
