@@ -1,6 +1,7 @@
 import json
 import os
 
+
 class ConfigManager:
     def __init__(self):
         self.config_file = "config.json"
@@ -8,7 +9,8 @@ class ConfigManager:
 
     def load_config(self):
         if os.path.exists(self.config_file):
-            with open(self.config_file, 'r') as f:
+            # with open(self.config_file, 'r') as f:
+            with open(self.config_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         return {
             'column_names': {},
@@ -47,11 +49,12 @@ class ConfigManager:
         if 'value_groups' not in self.config:
             self.config['value_groups'] = {}
         self.config['value_groups'][column] = groups
+
     def save_importance_satisfaction_pairs(self, name, importance_col, satisfaction_col):
         """名前付きの重要度-満足度ペアを保存する"""
         if 'importance_satisfaction_pairs' not in self.config:
             self.config['importance_satisfaction_pairs'] = {}
-        
+
         self.config['importance_satisfaction_pairs'][name] = {
             'importance': importance_col,
             'satisfaction': satisfaction_col
