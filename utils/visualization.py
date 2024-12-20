@@ -231,10 +231,10 @@ class Visualizer:
 
         # タブの作成
         tabs = st.tabs([
+            "重要度-満足度分析",
             "相関係数ヒートマップ",
             "回答の分布",
             "質問グループ間の散布図",
-            "重要度-満足度分析"
         ])
 
         with tabs[0]:
@@ -279,7 +279,7 @@ class Visualizer:
                 st.session_state['correlation_heatmap_figures'] = []
 
             # 表示モードの選択
-            correlation_mode = st.radio("", ["質問間の相関", "質問グループ間の相関"],
+            correlation_mode = st.radio("", ["質問グループ間の相関", "質問間の相関"],
                     key="correlation_mode")
 
             # 属性の選択

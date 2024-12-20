@@ -283,10 +283,15 @@ def main():
                 new_max_scores = {}
                 for col in numeric_columns:
                     display_name = column_names.get(col, col)
-                    current_max = max_scores.get(col, 5)  # デフォルト値は5
-                    new_max = st.number_input(f"{display_name}の満点:",
+                    # 対象列のデータ中の最大値を取得
+                    column_max_value = st.session_state.data_processor.dfs[0][col].max()
+                    # 最大値をデフォルトの満点に設定
+                    default_max = column_max_value if not pd.isna(column_max_value) else 5
+                    
+                    # 入力フォームを作成
+                    new_max = st.number_input(f"{display_name}:",
                                               min_value=1,
-                                              value=int(current_max),
+                                              value=int(default_max),
                                               key=f"max_score_{col}")
                     new_max_scores[col] = new_max
 
